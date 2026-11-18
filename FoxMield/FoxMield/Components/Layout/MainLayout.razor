@@ -6,13 +6,18 @@
     </div>
 
     <main>
-        <div class="top-row px-4">
-            <a href="https://learn.microsoft.com/aspnet/core/" target="_blank">About</a>
-        </div>
-
-        <article class="content px-4">
+        <header class="top-row">
+            @*if we want text on the top on the site, we can put it here with
+                <span class="header-label">INSERT TEXT HERE</span>
+            *@
+        </header>
+        <article class="content">
             @Body
         </article>
+
+        <footer class="site-footer">
+            @@ Foxmield 2026
+        </footer>
     </main>
 </div>
 
