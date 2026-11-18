@@ -15,8 +15,18 @@ namespace FoxMield.Components.Models
         public string? Power { get; set; } = null;
         public string? Toughness { get; set; } = null;
         public string? Loyalty { get; set; } = null;
-        public string Rarity { get; set; } = "";
+        public string Rarity { get; set; } = "rare";
         public bool Legality { get; set; } = false;
+        public string? OracleText { get; set; } = "Destroy target silver-bordered permanent in any game you can see from your seat.\r\n";
+        public Dictionary<string, Uri> ImageUris { get; set; } = new()
+        {
+            ["small"] = new Uri("https://cards.scryfall.io/small/front/0/9/09ceffd6-2fe3-4d8b-93f2-291b31f83668.jpg"),
+            ["normal"] = new Uri("https://cards.scryfall.io/normal/front/0/9/09ceffd6-2fe3-4d8b-93f2-291b31f83668.jpg"),
+            ["large"] = new Uri("https://cards.scryfall.io/large/front/0/9/09ceffd6-2fe3-4d8b-93f2-291b31f83668.jpg"),
+            ["png"] = new Uri("https://cards.scryfall.io/png/front/0/9/09ceffd6-2fe3-4d8b-93f2-291b31f83668.png"),
+            ["art_crop"] = new Uri("https://cards.scryfall.io/art_crop/front/0/9/09ceffd6-2fe3-4d8b-93f2-291b31f83668.jpg"),
+            ["border_crop"] = new Uri("https://cards.scryfall.io/border_crop/front/0/9/09ceffd6-2fe3-4d8b-93f2-291b31f83668.jpg")
+        };
         
 
         //This part is entirely display purposes
