@@ -1,0 +1,199 @@
+﻿.card-info-layout {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: 32px;
+    width: 100%;
+    align-items: start;
+}
+
+.card-art-panel {
+    background-color: #242428;
+    border: 1px solid #3a3a40;
+    border-radius: 12px;
+    overflow: hidden;
+}
+
+.card-artwork {
+    display: block;
+    width: 100%;
+    aspect-ratio: 4 / 3;
+    object-fit: cover;
+}
+
+.no-artwork {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 300px;
+    color: #9999a3;
+}
+
+.art-caption {
+    padding: 16px;
+    text-align: center;
+    font-size: 14px;
+    color: #9999a3;
+}
+
+    .art-caption a {
+        color: #e03547;
+        text-decoration: underline;
+        text-underline-offset: 3px;
+    }
+
+        .art-caption a:hover {
+            color: #ff6474;
+        }
+
+.card-details {
+    background-color: #242428;
+    border: 1px solid #3a3a40;
+    border-radius: 12px;
+    padding: 30px;
+    color: #ffffff;
+    min-width: 0;
+}
+
+    .card-details h1 {
+        font-size: 32px;
+        font-weight: 700;
+        margin-bottom: 24px;
+        overflow-wrap: anywhere;
+    }
+
+.card-stats {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 14px;
+}
+
+.stat {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 16px;
+    background-color: #19191d;
+    border: 1px solid #35353a;
+    border-radius: 8px;
+    overflow-wrap: anywhere;
+}
+
+.stat-label {
+    font-size: 12px;
+    font-weight: 600;
+    color: #9999a3;
+}
+
+.stat > span:not(.stat-label) {
+    font-size: 16px;
+    color: #ffffff;
+}
+
+.mana-symbols {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px;
+}
+
+.mana-symbol {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 32px;
+    height: 32px;
+    padding: 0 5px;
+    border-radius: 50%;
+    font-size: 15px;
+    font-weight: 700;
+    border: 1px solid rgba(0, 0, 0, 0.3);
+}
+
+.mana-white {
+    background-color: #f8e7ba;
+    color: #302619;
+}
+
+.mana-blue {
+    background-color: #83b8df;
+    color: #102d46;
+}
+
+.mana-black {
+    background-color: #77717f;
+    color: #ffffff;
+}
+
+.mana-red {
+    background-color: #e97564;
+    color: #421b15;
+}
+
+.mana-green {
+    background-color: #84c59d;
+    color: #173e27;
+}
+
+.mana-generic {
+    background-color: #cacad0;
+    color: #202024;
+}
+
+.rarity {
+    text-transform: capitalize;
+}
+
+.oracle-section {
+    grid-column: 1 / -1;
+}
+
+.oracle-text {
+    color: #e0e0e5;
+    font-size: 15px;
+    line-height: 1.7;
+    white-space: pre-line;
+    margin: 0;
+}
+
+.delete-card-button {
+    margin-top: 30px;
+    padding: 12px 24px;
+    background-color: #922534;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: 600;
+}
+
+    .delete-card-button:hover {
+        background-color: #c92838;
+    }
+
+.not-found {
+    color: #ffffff;
+}
+
+    .not-found a {
+        color: #e03547;
+    }
+
+@media (max-width: 900px) {
+    .card-info-layout {
+        grid-template-columns: 1fr;
+    }
+
+    .card-details {
+        padding: 20px;
+    }
+}
+
+@media (max-width: 480px) {
+    .card-stats {
+        grid-template-columns: 1fr;
+    }
+
+    .card-details h1 {
+        font-size: 26px;
+    }
+}
