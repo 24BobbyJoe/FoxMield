@@ -1,4 +1,4 @@
-﻿@page "/card/{Id:int}"
+﻿@page "/card/{Name}"
 @rendermode InteractiveServer
 @using System.ComponentModel.DataAnnotations
 @using Microsoft.AspNetCore.Components.Forms
@@ -31,18 +31,18 @@ else
 
 @code {
     [Parameter]
-    public int Id { get; set; }
+    public string Name { get; set; }
 
     private Card? card;
 
     protected override void OnParametersSet()
     {
-        card = CardService.GetCard(Id);
+        card = CardService.GetCard(Name);
     }
 
     private void DeleteCard()
     {
-        CardService.DeleteCard(Id);
+        CardService.DeleteCard(Name);
         card = null;
     }
 }
