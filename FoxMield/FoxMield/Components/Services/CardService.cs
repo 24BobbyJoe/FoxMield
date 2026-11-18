@@ -16,9 +16,9 @@ namespace FoxMield.Components.Services
             Cards.Add(card);
         }
 
-        public void DeleteCard(int id)
+        public void DeleteCard(string name)
         {
-            Card? card = Cards.FirstOrDefault(g => g.Id == id);
+            Card? card = Cards.FirstOrDefault(g => g.Name == name);
 
             if (card != null)
             {
@@ -26,9 +26,9 @@ namespace FoxMield.Components.Services
             }
         }
 
-        public Card GetCard(int Id)
+        public Card GetCard(string name)
         {
-            return Cards.FirstOrDefault(c => c.Id == Id);
+            return Cards.FirstOrDefault(c => c.Name == name);
         }
     }
 }
