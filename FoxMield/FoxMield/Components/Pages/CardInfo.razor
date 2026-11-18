@@ -1,0 +1,48 @@
+﻿@page "/card/{Id:int}"
+@rendermode InteractiveServer
+@using System.ComponentModel.DataAnnotations
+@using Microsoft.AspNetCore.Components.Forms
+@using FoxMield.Components.Models
+@using FoxMield.Components.Services
+@inject CardService CardService
+
+<PageTitle>Game Details</PageTitle>
+
+@if (card == null)
+{
+    <h1>Game Not Found</h1>
+    <p>We couldn't find that game in your collection.</p>
+    <a href="/collection">Back to Collection</a>
+}
+else
+{
+    <div class="game-details">
+
+        <div class="game-details-info">
+            <h1>@card.Name</h1>
+            <button class="delete-card-button" @onclick="DeleteCard">
+                Delete Card
+            </button>
+
+            <a href="/collection">Back to Collection</a>
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter]
+    public int Id { get; set; }
+
+    private Card? card;
+
+    protected override void OnParametersSet()
+    {
+        card = CardService.GetCard(Id);
+    }
+
+    private void DeleteCard()
+    {
+        CardService.DeleteCard(Id);
+        card = null;
+    }
+}
