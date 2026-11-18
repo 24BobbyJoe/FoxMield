@@ -27,5 +27,64 @@ namespace FoxMield.Components.Models
             ["art_crop"] = new Uri("https://cards.scryfall.io/art_crop/front/0/9/09ceffd6-2fe3-4d8b-93f2-291b31f83668.jpg"),
             ["border_crop"] = new Uri("https://cards.scryfall.io/border_crop/front/0/9/09ceffd6-2fe3-4d8b-93f2-291b31f83668.jpg")
         };
+        
+
+        //This part is entirely display purposes
+        public string DisplayColorIdentity
+        {
+            get
+            {
+                return string.Concat(ColorIdentity) switch
+                {
+                    // Colorless
+                    "" => "Colorless",
+
+                    // Mono-color
+                    "W" => "White",
+                    "U" => "Blue",
+                    "B" => "Black",
+                    "R" => "Red",
+                    "G" => "Green",
+
+                    // Two-color (Guilds)
+                    "WU" => "Azorius",
+                    "WB" => "Orzhov",
+                    "WR" => "Boros",
+                    "WG" => "Selesnya",
+                    "UB" => "Dimir",
+                    "UR" => "Izzet",
+                    "UG" => "Simic",
+                    "BR" => "Rakdos",
+                    "BG" => "Golgari",
+                    "RG" => "Gruul",
+
+                    // Three-color (Shards)
+                    "WUG" => "Bant",
+                    "WUB" => "Esper",
+                    "UBR" => "Grixis",
+                    "BRG" => "Jund",
+                    "WRG" => "Naya",
+
+                    // Three-color (Wedges)
+                    "WBG" => "Abzan",
+                    "WUR" => "Jeskai",
+                    "UBG" => "Sultai",
+                    "WBR" => "Mardu",
+                    "URG" => "Temur",
+
+                    // Four-color
+                    "WUBR" => "Yore-Tiller",
+                    "UBRG" => "Glint-Eye",
+                    "WBRG" => "Dune-Brood",
+                    "WURG" => "Ink-Treader",
+                    "WUBG" => "Witch-Maw",
+
+                    // Five-color
+                    "WUBRG" => "Five-Color",
+
+                    _ => "Unknown"
+                };
+            }
+        }
     }
 }
