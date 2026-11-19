@@ -34,7 +34,11 @@ namespace FoxMield.Components.Models
         {
             get
             {
-                return string.Concat(ColorIdentity) switch
+                string orderedColors = new string(
+                    "WUBRG".Where(color => ColorIdentity.Contains(color)).ToArray()
+                );
+
+                return orderedColors switch
                 {
                     // Colorless
                     "" => "Colorless",

@@ -1,14 +1,17 @@
-﻿using FoxMield.Components.Models;
+﻿
+using FoxMield.Components.Models;
 
 namespace FoxMield.Components.Services
 {
     public class CardService
     {
-        public readonly List<Card> Cards;
+        private readonly ScryfallService _scryfall;
 
-        public CardService()
+        public List<Card> Cards { get; } = new();
+
+        public CardService(ScryfallService scryfall)
         {
-            Cards = new List<Card>();
+            _scryfall = scryfall;
         }
 
         public void AddCard(Card card)
@@ -18,7 +21,7 @@ namespace FoxMield.Components.Services
 
         public void DeleteCard(string name)
         {
-            Card? card = Cards.FirstOrDefault(g => g.Name == name);
+            Card? card = Cards.FirstOrDefault(c => c.Name == name);
 
             if (card != null)
             {
@@ -26,9 +29,16 @@ namespace FoxMield.Components.Services
             }
         }
 
-        public Card GetCard(string name)
+        public Card? GetCard(string name)
         {
             return Cards.FirstOrDefault(c => c.Name == name);
+        }
+
+        public async Task ImportDeck(List<string> names)
+        {
+            List<Card> foundCards = await _scryfall.GetCardsByNames(names);
+
+            Cards.AddRange(foundCards);
         }
     }
 }
