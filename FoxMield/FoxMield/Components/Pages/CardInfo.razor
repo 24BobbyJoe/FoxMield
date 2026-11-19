@@ -1,48 +1,254 @@
 ﻿@page "/card/{Name}"
+@page "/card-preview"
 @rendermode InteractiveServer
-@using System.ComponentModel.DataAnnotations
-@using Microsoft.AspNetCore.Components.Forms
+
+@using System.Text.RegularExpressions
 @using FoxMield.Components.Models
 @using FoxMield.Components.Services
 @inject CardService CardService
 
-<PageTitle>Game Details</PageTitle>
+<PageTitle>@(card?.Name ?? "Card Info")</PageTitle>
 
 @if (card == null)
 {
-    <h1>Game Not Found</h1>
-    <p>We couldn't find that game in your collection.</p>
-    <a href="/collection">Back to Collection</a>
+    <div class="not-found">
+        <h1>Card Not Found</h1>
+        <p>We couldn't find that card.</p>
+        <a href="/">Back to Home</a>
+    </div>
 }
 else
 {
-    <div class="game-details">
+    <div class="card-info-layout">
 
-        <div class="game-details-info">
-            <h1>@card.Name</h1>
-            <button class="delete-card-button" @onclick="DeleteCard">
-                Delete Card
-            </button>
+        <div class="card-art-panel">
 
-            <a href="/collection">Back to Collection</a>
+            @if (ArtworkUrl != null)
+            {
+                <img src="@ArtworkUrl"
+                     alt="Artwork for @card.Name"
+                     class="card-artwork" />
+            }
+            else
+            {
+                <div class="no-artwork">
+                    Artwork not available
+                </div>
+            }
+
+            <div class="art-caption">
+                @if (FullCardUrl != null)
+                {
+                    <a href="@FullCardUrl"
+                       target="_blank"
+                       rel="noopener noreferrer">
+                        View full card image
+                    </a>
+                }
+                else
+                {
+                    <span>Full card image unavailable</span>
+                }
+            </div>
+
         </div>
+
+        <div class="card-details">
+
+            <h1>@card.Name</h1>
+
+            <div class="card-stats">
+
+                <div class="stat">
+                    <span class="stat-label">Mana Cost</span>
+
+                    <div class="mana-symbols">
+                        @if (GetManaSymbols(card.ManaCost).Length == 0)
+                        {
+                            <span>None</span>
+                        }
+                        else
+                        {
+                            @foreach (var symbol in GetManaSymbols(card.ManaCost))
+                            {
+                                <span class="mana-symbol @GetManaClass(symbol)"
+                                      title="@GetManaLabel(symbol)">
+                                    @symbol
+                                </span>
+                            }
+                        }
+                    </div>
+                </div>
+
+                <div class="stat">
+                    <span class="stat-label">Mana Value</span>
+                    <span>@card.Cmc</span>
+                </div>
+
+                <div class="stat">
+                    <span class="stat-label">Colors</span>
+                    <span>@FormatColors(card.Color)</span>
+                </div>
+
+                <div class="stat">
+                    <span class="stat-label">Identity</span>
+                    <span>@GetIdentity()</span>
+                </div>
+
+                <div class="stat">
+                    <span class="stat-label">Rarity</span>
+                    <span class="rarity">@card.Rarity</span>
+                </div>
+
+                @if (!string.IsNullOrWhiteSpace(card.Power) ||
+                     !string.IsNullOrWhiteSpace(card.Toughness))
+                {
+                    <div class="stat">
+                        <span class="stat-label">P/T</span>
+                        <span>
+                            @(string.IsNullOrWhiteSpace(card.Power) ? "-" : card.Power)
+                            /
+                            @(string.IsNullOrWhiteSpace(card.Toughness) ? "-" : card.Toughness)
+                        </span>
+                    </div>
+                }
+
+                <div class="stat oracle-section">
+                    <span class="stat-label">Oracle Text</span>
+
+                    <p class="oracle-text">
+                        @(string.IsNullOrWhiteSpace(card.OracleText)
+                            ? "No abilities."
+                            : card.OracleText)
+                    </p>
+                </div>
+
+            </div>
+
+            @if (!string.IsNullOrEmpty(Name))
+            {
+                <button class="delete-card-button"
+                        @onclick="DeleteCard">
+                    Delete Card
+                </button>
+            }
+
+        </div>
+
     </div>
 }
 
 @code {
     [Parameter]
-    public string Name { get; set; }
+    public string? Name { get; set; }
 
     private Card? card;
 
+    private string? GetImageUrl(string key)
+    {
+        if (card?.ImageUris != null &&
+            card.ImageUris.TryGetValue(key, out var image))
+        {
+            return image.ToString();
+        }
+
+        return null;
+    }
+
+    private string? ArtworkUrl => GetImageUrl("art_crop");
+
+    private string? FullCardUrl =>
+        GetImageUrl("border_crop") ??
+        GetImageUrl("large") ??
+        GetImageUrl("normal") ??
+        GetImageUrl("png");
+
+    private static string[] GetManaSymbols(string? manaCost)
+    {
+        return Regex.Matches(manaCost ?? "", @"\{([^}]+)\}")
+            .Cast<Match>()
+            .Select(match => match.Groups[1].Value)
+            .ToArray();
+    }
+
+    private static string GetManaClass(string symbol)
+    {
+        return symbol switch
+        {
+            "W" => "mana-white",
+            "U" => "mana-blue",
+            "B" => "mana-black",
+            "R" => "mana-red",
+            "G" => "mana-green",
+            _ => "mana-generic"
+        };
+    }
+
+    private static string GetManaLabel(string symbol)
+    {
+        return symbol switch
+        {
+            "W" => "White mana",
+            "U" => "Blue mana",
+            "B" => "Black mana",
+            "R" => "Red mana",
+            "G" => "Green mana",
+            _ => $"Mana symbol: {symbol}"
+        };
+    }
+
+    private static string FormatColors(string? colors)
+    {
+        if (string.IsNullOrWhiteSpace(colors))
+            return "Colorless";
+
+        string codes = colors.Replace(",", "")
+                             .Replace(" ", "")
+                             .ToUpperInvariant();
+
+        if (codes.Any(c => !"WUBRG".Contains(c)))
+            return colors;
+
+        return string.Join(", ", codes.Distinct().Select(c => c switch
+        {
+            'W' => "White",
+            'U' => "Blue",
+            'B' => "Black",
+            'R' => "Red",
+            'G' => "Green",
+            _ => ""
+        }));
+    }
+
+    private string GetIdentity()
+    {
+        if (card == null)
+            return "Unknown";
+
+        if (card.DisplayColorIdentity != "Unknown")
+            return card.DisplayColorIdentity;
+
+        return FormatColors(card.ColorIdentity);
+    }
+
     protected override void OnParametersSet()
     {
-        card = CardService.GetCard(Name);
+        if (string.IsNullOrEmpty(Name))
+        {
+            card = new Card();
+        }
+        else
+        {
+            card = CardService.GetCard(Name);
+        }
     }
 
     private void DeleteCard()
     {
-        CardService.DeleteCard(Name);
-        card = null;
+        if (Name != null)
+        {
+            CardService.DeleteCard(Name);
+            card = null;
+        }
     }
 }
