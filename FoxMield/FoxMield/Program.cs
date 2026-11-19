@@ -1,3 +1,4 @@
+
 using FoxMield.Components;
 using FoxMield.Components.Services;
 
@@ -6,7 +7,15 @@ var builder = WebApplication.CreateBuilder(args);
 // Add services to the container.
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
+
 builder.Services.AddScoped<CardService>();
+
+builder.Services.AddHttpClient<ScryfallService>(client =>
+{
+    client.BaseAddress = new Uri("https://api.scryfall.com/");
+    client.DefaultRequestHeaders.Add("User-Agent", "FoxMield/1.0");
+    client.DefaultRequestHeaders.Add("Accept", "application/json");
+});
 
 var app = builder.Build();
 
@@ -14,9 +23,9 @@ var app = builder.Build();
 if (!app.Environment.IsDevelopment())
 {
     app.UseExceptionHandler("/Error", createScopeForErrors: true);
-    // The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.
     app.UseHsts();
 }
+
 app.UseStatusCodePagesWithReExecute("/not-found", createScopeForStatusCodePages: true);
 app.UseHttpsRedirection();
 

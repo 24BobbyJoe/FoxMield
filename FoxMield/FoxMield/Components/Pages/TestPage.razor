@@ -1,0 +1,81 @@
+﻿@page "/scryfall-test"
+@rendermode InteractiveServer
+
+@using FoxMield.Components.Models
+@using FoxMield.Components.Services
+
+@inject ScryfallService Scryfall
+
+<PageTitle>Scryfall Test</PageTitle>
+
+<h1>Scryfall API Test</h1>
+
+<input @bind="cardName" placeholder="Enter a card name" />
+
+<button @onclick="SearchCard">Search</button>
+
+@if (isLoading)
+{
+    <p>Searching Scryfall...</p>
+}
+
+@if (!string.IsNullOrEmpty(errorMessage))
+{
+    <p style="color: red;">@errorMessage</p>
+}
+
+@if (foundCards.Count > 0)
+{
+    @foreach (var card in foundCards)
+    {
+        <div>
+            <h2>@card.Name</h2>
+            <p>Mana Cost: @card.ManaCost</p>
+            <p>Type: @card.TypeLine</p>
+            <p>Color Identity: @card.DisplayColorIdentity</p>
+            <p>Oracle Text: @card.OracleText</p>
+
+            @if (card.ImageUris.TryGetValue("normal", out var image))
+            {
+                <img src="@image" alt="@card.Name" />
+            }
+        </div>
+    }
+}
+
+@code {
+    private string cardName = "Sol Ring";
+
+    private List<Card> foundCards = new();
+
+    private bool isLoading;
+
+    private string errorMessage = "";
+
+    private async Task SearchCard()
+    {
+        isLoading = true;
+        errorMessage = "";
+        foundCards.Clear();
+
+        try
+        {
+            foundCards = await Scryfall.GetCardsByNames(
+                new List<string> { cardName }
+            );
+
+            if (foundCards.Count == 0)
+            {
+                errorMessage = "No cards were found.";
+            }
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Something went wrong: {ex.Message}";
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+}
