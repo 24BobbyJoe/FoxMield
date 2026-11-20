@@ -1,4 +1,3 @@
-
 using FoxMield.Components;
 using FoxMield.Components.Services;
 
@@ -9,6 +8,7 @@ builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
 
 builder.Services.AddScoped<CardService>();
+builder.Services.AddSingleton<DeckService>();
 
 builder.Services.AddHttpClient<ScryfallService>(client =>
 {

@@ -1,0 +1,211 @@
+﻿@page "/decks/{Id:guid}"
+@rendermode InteractiveServer
+
+@using FoxMield.Components.Models
+@using FoxMield.Components.Services
+
+@inject DeckService DeckService
+
+<PageTitle>@(deck?.Name ?? "Deck Not Found") | FoxMield</PageTitle>
+
+<div class="deck-details-page">
+
+    <a href="/decks" class="deck-back-link">
+        ← Back to My Decks
+    </a>
+
+    @if (deck == null)
+    {
+        <div class="deck-not-found">
+            <h1>Deck Not Found</h1>
+
+            <p>
+                This deck could not be found
+                in your library.
+            </p>
+
+            <a href="/decks">
+                Return to My Decks
+            </a>
+        </div>
+    }
+    else
+    {
+        <!-- Deck Information -->
+
+        <div class="deck-details-header">
+
+            <div class="deck-details-title">
+
+                <p class="deck-label">COMMANDER DECK</p>
+
+                <h1>@deck.Name</h1>
+
+                <p class="deck-import-date">
+                    Imported
+                    @deck.ImportedAt.ToLocalTime().ToString("MMMM d, yyyy")
+                </p>
+
+            </div>
+
+            <div class="deck-details-stats">
+
+                <div class="deck-detail-stat">
+                    <strong>@deck.TotalCards</strong>
+                    <span>Total Cards</span>
+                </div>
+
+                <div class="deck-detail-stat">
+                    <strong>@deck.UniqueCards</strong>
+                    <span>Unique Entries</span>
+                </div>
+
+                <div class="deck-detail-stat">
+                    <strong>@deck.CommanderCount</strong>
+                    <span>Commanders</span>
+                </div>
+
+            </div>
+
+        </div>
+
+        <!-- Commander Information -->
+
+        <section class="deck-commander-section">
+
+            <h2>Commander</h2>
+
+            @if (deck.CommanderCount == 0)
+            {
+                <p>No commander has been assigned.</p>
+            }
+            else
+            {
+                @foreach (DeckEntry commander in deck.Cards
+                    .Where(c => c.Section == "Commander"))
+                {
+                    <div class="deck-commander-card">
+
+                        <span class="deck-card-quantity">
+                            @commander.Quantity x
+                        </span>
+
+                        <a href="@GetCardUrl(commander.Name)"
+                           class="deck-card-link">
+                            @commander.Name
+                        </a>
+
+                    </div>
+                }
+            }
+
+        </section>
+
+        <!-- Deck Size -->
+
+        <div class="deck-count-summary">
+
+            <div>
+                <h3>Deck Size</h3>
+
+                <p>
+                    @deck.MainDeckCount cards in main deck
+                    + @deck.CommanderCount commander cards
+                </p>
+            </div>
+
+            @if (deck.HasCorrectCardCount)
+            {
+                <span class="deck-count-valid">
+                    100 / 100 Cards
+                </span>
+            }
+            else
+            {
+                <span class="deck-count-invalid">
+                    @deck.TotalCards / 100 Cards
+                </span>
+            }
+
+        </div>
+
+        <!-- Main Deck and Other Sections -->
+        @foreach (var section in deck.Cards
+                    .Where(c => c.Section != "Commander")
+                    .GroupBy(c => c.Section)
+                    .OrderBy(s => GetSectionOrder(s.Key)))
+        {
+            <section class="deck-cards-section">
+
+                <div class="deck-section-header">
+
+                    <h2>@section.Key</h2>
+
+                    <span>
+                        @section.Sum(c => c.Quantity) Cards
+                    </span>
+
+                </div>
+
+                <div class="deck-cards-list">
+
+                    @foreach (DeckEntry card in section
+                        .OrderBy(c => c.Name))
+                    {
+                        <div class="deck-card-row">
+
+                            <span class="deck-card-quantity">
+                                @card.Quantity x
+                            </span>
+
+                            <a href="@GetCardUrl(card.Name)"
+                               class="deck-card-link">
+                                @card.Name
+                            </a>
+
+                            <span class="deck-card-arrow"
+                                  aria-hidden="true">
+                                →
+                            </span>
+
+                        </div>
+                    }
+
+                </div>
+
+            </section>
+        }
+
+    }
+
+</div>
+
+@code {
+
+    [Parameter]
+    public Guid Id { get; set; }
+
+    private Deck? deck;
+
+    protected override void OnParametersSet()
+    {
+        deck = DeckService.GetDeck(Id);
+    }
+
+    private static string GetCardUrl(string cardName)
+    {
+        return "/card/" + Uri.EscapeDataString(cardName);
+    }
+
+    private static int GetSectionOrder(string section)
+    {
+        return section switch
+        {
+            "Main Deck" => 0,
+            "Sideboard" => 1,
+            "Maybeboard" => 2,
+            "Companion" => 3,
+            _ => 4
+        };
+    }
+}

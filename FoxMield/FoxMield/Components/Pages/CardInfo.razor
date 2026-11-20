@@ -6,6 +6,7 @@
 @using FoxMield.Components.Models
 @using FoxMield.Components.Services
 @inject CardService CardService
+@inject ScryfallService ScryfallService
 
 <PageTitle>@(card?.Name ?? "Card Info")</PageTitle>
 
@@ -231,15 +232,30 @@ else
         return FormatColors(card.ColorIdentity);
     }
 
-    protected override void OnParametersSet()
+    protected override async Task OnParametersSetAsync()
     {
-        if (string.IsNullOrEmpty(Name))
+        if (string.IsNullOrWhiteSpace(Name))
         {
             card = new Card();
+            return;
         }
-        else
+
+        card = CardService.GetCard(Name);
+
+        if (card == null)
         {
-            card = CardService.GetCard(Name);
+            try
+            {
+                var results = await ScryfallService.GetCardsByNames(
+                    new List<string> { Name }
+                );
+
+                card = results.FirstOrDefault();
+            }
+            catch (HttpRequestException)
+            {
+                card = null;
+            }
         }
     }
 
