@@ -1,0 +1,225 @@
+﻿.deck-import-page {
+    width: 100%;
+    max-width: 1000px;
+    margin: 0 auto;
+    color: #f5f5f5;
+}
+
+.deck-page-heading {
+    margin-bottom: 30px;
+}
+
+    .deck-page-heading h1 {
+        font-size: 36px;
+        font-weight: 700;
+        margin-bottom: 12px;
+        color: #ffffff;
+    }
+
+    .deck-page-heading p {
+        color: #b8b8bf;
+        font-size: 16px;
+        line-height: 1.6;
+    }
+
+.deck-form-panel {
+    background-color: #242428;
+    border: 1px solid #3a3a40;
+    border-radius: 12px;
+    padding: 30px;
+}
+
+.deck-field {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-bottom: 24px;
+}
+
+    .deck-field label {
+        color: #f5f5f5;
+        font-size: 14px;
+        font-weight: 600;
+    }
+
+    .deck-field input,
+    .deck-field textarea,
+    .deck-field select {
+        width: 100%;
+        padding: 13px 15px;
+        background-color: #19191d;
+        color: #ffffff;
+        border: 1px solid #3a3a40;
+        border-radius: 8px;
+        font-family: inherit;
+        font-size: 15px;
+        transition: border-color 0.2s, box-shadow 0.2s;
+    }
+
+    .deck-field textarea {
+        min-height: 300px;
+        resize: vertical;
+        line-height: 1.7;
+    }
+
+        .deck-field input:focus,
+        .deck-field textarea:focus,
+        .deck-field select:focus {
+            outline: none;
+            border-color: #e03547;
+            box-shadow: 0 0 0 3px rgba(224, 53, 71, 0.15);
+        }
+
+        .deck-field input::placeholder,
+        .deck-field textarea::placeholder {
+            color: #85858f;
+        }
+
+.deck-hint {
+    margin: 0;
+    color: #9999a3;
+    font-size: 13px;
+    line-height: 1.6;
+}
+
+.deck-primary-button,
+.deck-secondary-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 13px 24px;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    text-decoration: none;
+    cursor: pointer;
+    transition: background-color 0.2s, border-color 0.2s;
+}
+
+.deck-primary-button {
+    background-color: #922534;
+    color: #ffffff;
+    border: 1px solid #922534;
+}
+
+    .deck-primary-button:hover:not(:disabled) {
+        background-color: #c92838;
+        border-color: #c92838;
+        color: #ffffff;
+    }
+
+    .deck-primary-button:disabled {
+        opacity: 0.55;
+        cursor: not-allowed;
+    }
+
+.deck-secondary-button {
+    background-color: #19191d;
+    color: #f5f5f5;
+    border: 1px solid #3a3a40;
+}
+
+    .deck-secondary-button:hover {
+        background-color: #302025;
+        border-color: #e03547;
+        color: #ffffff;
+    }
+
+    .deck-primary-button:focus-visible,
+    .deck-secondary-button:focus-visible {
+        outline: 2px solid #e03547;
+        outline-offset: 3px;
+    }
+
+.deck-form-actions {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 14px;
+    margin-top: 28px;
+}
+
+.deck-preview {
+    margin-top: 28px;
+    padding: 24px;
+    background-color: #19191d;
+    border: 1px solid #35353a;
+    border-radius: 10px;
+}
+
+    .deck-preview h2 {
+        font-size: 24px;
+        font-weight: 700;
+        margin-bottom: 16px;
+    }
+
+    .deck-preview > p {
+        color: #b8b8bf;
+        margin-bottom: 10px;
+    }
+
+.commander-preview,
+.commander-selection {
+    margin-top: 24px;
+    padding: 20px;
+    background-color: #302025;
+    border: 1px solid #922534;
+    border-radius: 10px;
+}
+
+    .commander-preview h3,
+    .commander-selection h3 {
+        color: #ffffff;
+        font-size: 19px;
+        font-weight: 600;
+        margin-bottom: 14px;
+    }
+
+    .commander-preview p {
+        color: #f5f5f5;
+        margin-bottom: 8px;
+    }
+
+    .commander-selection > p {
+        color: #b8b8bf;
+        line-height: 1.6;
+        margin-bottom: 20px;
+    }
+
+    .commander-selection .deck-field {
+        margin-bottom: 18px;
+    }
+
+.deck-error {
+    margin-top: 22px;
+    padding: 14px 18px;
+    background-color: rgba(224, 53, 71, 0.12);
+    border: 1px solid #922534;
+    border-radius: 8px;
+    color: #ff8a96;
+    font-size: 14px;
+}
+
+@media (max-width: 640px) {
+    .deck-page-heading h1 {
+        font-size: 28px;
+    }
+
+    .deck-form-panel {
+        padding: 20px;
+    }
+
+    .deck-preview {
+        padding: 16px;
+    }
+
+    .deck-form-actions {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .deck-primary-button,
+    .deck-secondary-button {
+        width: 100%;
+    }
+}

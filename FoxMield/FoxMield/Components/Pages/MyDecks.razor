@@ -1,0 +1,168 @@
+﻿@page "/decks"
+
+@using FoxMield.Components.Models
+@using FoxMield.Components.Services
+
+@inject DeckService DeckService
+
+<PageTitle>My Decks | FoxMield</PageTitle>
+
+<div class="my-decks-page">
+
+    <div class="decks-page-header">
+
+        <div>
+            <h1>My Decks</h1>
+
+            <p>
+                View and manage your imported
+                Commander decks.
+            </p>
+        </div>
+
+        <a href="/deck-import" class="decks-import-button">
+            + Import Deck
+        </a>
+
+    </div>
+
+    @if (decks.Count == 0)
+    {
+        <div class="decks-empty-state">
+
+            <h2>No Decks Imported Yet</h2>
+
+            <p>
+                Your deck library is currently empty.
+                Import a Commander deck from Moxfield
+                to get started.
+            </p>
+
+            <a href="/deck-import" class="decks-import-button">
+                Import Your First Deck
+            </a>
+
+        </div>
+    }
+    else
+    {
+        <div class="decks-summary">
+
+            <h2>Your Collection</h2>
+
+            <span>
+                @decks.Count
+                @(decks.Count == 1 ? "Deck" : "Decks")
+            </span>
+
+        </div>
+
+        <div class="decks-list">
+
+            @foreach (Deck deck in decks)
+            {
+                <a href="@($"/decks/{deck.Id}")"
+                   class="deck-list-card"
+                   @key="deck.Id">
+
+                    <div class="deck-list-main">
+
+                        <h3>@deck.Name</h3>
+
+                        <div class="deck-commander">
+
+                            <span class="deck-label">
+                                COMMANDER
+                            </span>
+
+                            @if (deck.CommanderCount > 0)
+                            {
+                                <p>
+                                    @string.Join(", ",
+                                        deck.Cards
+                                            .Where(c =>
+                                                c.Section == "Commander")
+                                            .Select(c => c.Name))
+                                </p>
+                            }
+                            else
+                            {
+                                <p>No commander assigned</p>
+                            }
+
+                        </div>
+
+                    </div>
+
+                    <div class="deck-list-information">
+
+                        <div class="deck-stat">
+
+                            <span class="deck-stat-value">
+                                @deck.TotalCards
+                            </span>
+
+                            <span class="deck-stat-label">
+                                Cards
+                            </span>
+
+                        </div>
+
+                        <div class="deck-stat">
+
+                            <span class="deck-stat-value">
+                                @deck.UniqueCards
+                            </span>
+
+                            <span class="deck-stat-label">
+                                Unique Entries
+                            </span>
+
+                        </div>
+
+                        <div class="deck-card-status">
+
+                            @if (deck.HasCorrectCardCount)
+                            {
+                                <span class="deck-count-complete">
+                                    100 Cards
+                                </span>
+                            }
+                            else
+                            {
+                                <span class="deck-count-incomplete">
+                                    @deck.TotalCards / 100 Cards
+                                </span>
+                            }
+
+                        </div>
+
+                        <span class="deck-import-date">
+                            Imported @deck.ImportedAt.ToString("MMM d, yyyy")
+                        </span>
+
+                    </div>
+
+                    <span class="deck-card-arrow"
+                          aria-hidden="true">
+                        →
+                    </span>
+
+                </a>
+            }
+
+        </div>
+    }
+
+</div>
+
+@code {
+
+    private List<Deck> decks = new();
+
+    protected override void OnInitialized()
+    {
+        decks = DeckService.GetAllDecks();
+    }
+
+}

@@ -1,0 +1,286 @@
+﻿.my-decks-page {
+    width: 100%;
+    max-width: 1200px;
+    margin: 0 auto;
+    color: #f5f5f5;
+}
+
+.decks-page-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 20px;
+    margin-bottom: 36px;
+}
+
+    .decks-page-header h1 {
+        color: #ffffff;
+        font-size: 36px;
+        font-weight: 700;
+        margin-bottom: 10px;
+    }
+
+    .decks-page-header p {
+        color: #b8b8bf;
+        font-size: 16px;
+        line-height: 1.6;
+    }
+
+.decks-import-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 13px 24px;
+    background-color: #922534;
+    border: 1px solid #922534;
+    border-radius: 8px;
+    color: #ffffff;
+    font-size: 14px;
+    font-weight: 600;
+    text-decoration: none;
+    transition: background-color 0.2s, border-color 0.2s;
+}
+
+    .decks-import-button:hover {
+        background-color: #c92838;
+        border-color: #c92838;
+        color: #ffffff;
+    }
+
+    .decks-import-button:focus-visible {
+        outline: 2px solid #e03547;
+        outline-offset: 4px;
+    }
+
+.decks-summary {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    padding-bottom: 14px;
+    border-bottom: 1px solid #3a3a40;
+}
+
+    .decks-summary h2 {
+        margin: 0;
+        color: #ffffff;
+        font-size: 22px;
+    }
+
+    .decks-summary span {
+        color: #b8b8bf;
+        font-size: 14px;
+    }
+
+.decks-list {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.deck-list-card {
+    display: flex;
+    align-items: center;
+    gap: 28px;
+    width: 100%;
+    padding: 24px;
+    background-color: #242428;
+    border: 1px solid #3a3a40;
+    border-radius: 12px;
+    color: #f5f5f5;
+    text-decoration: none;
+    transition: background-color 0.2s, border-color 0.2s, transform 0.2s;
+}
+
+    .deck-list-card:hover {
+        background-color: #302025;
+        border-color: #e03547;
+        transform: translateY(-2px);
+        color: #ffffff;
+    }
+
+    .deck-list-card:focus-visible {
+        outline: 2px solid #e03547;
+        outline-offset: 4px;
+    }
+
+.deck-list-main {
+    flex: 1;
+    min-width: 0;
+}
+
+    .deck-list-main h3 {
+        color: #ffffff;
+        font-size: 22px;
+        font-weight: 700;
+        margin: 0 0 16px;
+        overflow-wrap: anywhere;
+    }
+
+.deck-commander {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.deck-label {
+    color: #e03547;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 1px;
+}
+
+.deck-commander p {
+    color: #b8b8bf;
+    font-size: 14px;
+    margin: 0;
+    overflow-wrap: anywhere;
+}
+
+.deck-list-information {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 30px;
+    flex-wrap: wrap;
+}
+
+.deck-stat {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 5px;
+    min-width: 65px;
+}
+
+.deck-stat-value {
+    color: #ffffff;
+    font-size: 24px;
+    font-weight: 700;
+}
+
+.deck-stat-label {
+    color: #9999a3;
+    font-size: 12px;
+}
+
+.deck-card-status {
+    display: flex;
+    align-items: center;
+}
+
+.deck-count-complete,
+.deck-count-incomplete {
+    display: inline-flex;
+    padding: 8px 12px;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.deck-count-complete {
+    background-color: rgba(45, 180, 100, 0.12);
+    color: #69d995;
+    border: 1px solid rgba(45, 180, 100, 0.3);
+}
+
+.deck-count-incomplete {
+    background-color: rgba(224, 53, 71, 0.12);
+    color: #ff8a96;
+    border: 1px solid rgba(224, 53, 71, 0.3);
+}
+
+.deck-import-date {
+    color: #9999a3;
+    font-size: 12px;
+    white-space: nowrap;
+}
+
+.deck-card-arrow {
+    color: #e03547;
+    font-size: 26px;
+    font-weight: 700;
+    transition: transform 0.2s;
+}
+
+.deck-list-card:hover .deck-card-arrow {
+    transform: translateX(5px);
+}
+
+.decks-empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 18px;
+    padding: 65px 30px;
+    background-color: #242428;
+    border: 1px solid #3a3a40;
+    border-radius: 12px;
+    text-align: center;
+}
+
+    .decks-empty-state h2 {
+        color: #ffffff;
+        font-size: 25px;
+        margin: 0;
+    }
+
+    .decks-empty-state p {
+        max-width: 450px;
+        color: #b8b8bf;
+        line-height: 1.6;
+        margin: 0;
+    }
+
+@media (max-width: 900px) {
+    .deck-list-card {
+        flex-wrap: wrap;
+        gap: 20px;
+    }
+
+    .deck-list-main {
+        flex-basis: 100%;
+    }
+
+    .deck-list-information {
+        justify-content: flex-start;
+        gap: 22px;
+    }
+
+    .deck-card-arrow {
+        margin-left: auto;
+    }
+}
+
+@media (max-width: 600px) {
+    .decks-page-header h1 {
+        font-size: 28px;
+    }
+
+    .deck-list-card {
+        padding: 18px;
+    }
+
+    .deck-list-information {
+        width: 100%;
+        gap: 16px;
+    }
+
+    .deck-list-main h3 {
+        font-size: 19px;
+    }
+
+    .deck-stat-value {
+        font-size: 21px;
+    }
+
+    .deck-import-date {
+        width: 100%;
+    }
+
+    .decks-empty-state {
+        padding: 40px 20px;
+    }
+}
