@@ -1,0 +1,375 @@
+﻿@page "/deck-import"
+@rendermode InteractiveServer
+
+@using FoxMield.Components.Models
+@using FoxMield.Components.Services
+
+@inject DeckService DeckService
+@inject NavigationManager Navigation
+
+<PageTitle>Import Deck | FoxMield</PageTitle>
+
+<div class="deck-import-page">
+
+    <div class="deck-page-heading">
+        <h1>Import a Commander Deck</h1>
+        <p>
+            Import a deck from Moxfield by pasting
+            its exported deck list below.
+        </p>
+    </div>
+
+    <div class="deck-form-panel">
+
+        <div class="deck-field">
+            <label for="deck-name">Deck Name</label>
+
+            <input id="deck-name"
+                   type="text"
+                   maxlength="120"
+                   placeholder="Enter your deck name"
+                   @bind="deckName" />
+        </div>
+
+        <div class="deck-field">
+            <label for="deck-list">Deck List</label>
+
+            <textarea id="deck-list"
+                      rows="16"
+                      spellcheck="false"
+                      placeholder="Commander&#10;1 Atraxa, Praetors' Voice&#10;&#10;Deck&#10;1 Sol Ring&#10;1 Arcane Signet"
+                      @bind="deckText">
+            </textarea>
+
+            <p class="deck-hint">
+                Paste a Moxfield text export.
+                Card quantities, names, and sections
+                are automatically recognized.
+            </p>
+        </div>
+
+        <button type="button"
+                class="deck-secondary-button"
+                @onclick="PreviewDeck">
+            Preview Cards
+        </button>
+
+        @if (previewCards.Count > 0)
+        {
+            <div class="deck-preview">
+
+                <h2>Deck Preview</h2>
+
+                <p>
+                    @previewCards.Count distinct card entries found.
+                </p>
+
+                <p>
+                    @previewCards.Sum(c => c.Quantity)
+                    total cards across all sections.
+                </p>
+
+                @if (HasCommander)
+                {
+                    <div class="commander-preview">
+                        <h3>Commander</h3>
+
+                        @foreach (var commander in previewCards
+                            .Where(c => c.Section == "Commander"))
+                        {
+                            <p>
+                                @commander.Quantity x @commander.Name
+                            </p>
+                        }
+                    </div>
+                }
+                else
+                {
+                    <div class="commander-selection">
+
+                        <h3>Select Your Commander</h3>
+
+                        <p>
+                            Your export did not identify a commander.
+                            Select one from the imported cards.
+                        </p>
+
+                        <div class="deck-field">
+                            <label for="commander-one">
+                                Primary Commander
+                            </label>
+
+                            <select id="commander-one"
+                                    @bind="selectedCommander">
+
+                                <option value="">
+                                    Select Commander
+                                </option>
+
+                                @foreach (var card in CommanderOptions)
+                                {
+                                    <option value="@card.Name">
+                                        @card.Name
+                                    </option>
+                                }
+
+                            </select>
+                        </div>
+
+                        <div class="deck-field">
+                            <label for="commander-two">
+                                Second Commander (Optional)
+                            </label>
+
+                            <select id="commander-two"
+                                    @bind="secondCommander">
+
+                                <option value="">
+                                    None
+                                </option>
+
+                                @foreach (var card in CommanderOptions)
+                                {
+                                    <option value="@card.Name">
+                                        @card.Name
+                                    </option>
+                                }
+
+                            </select>
+                        </div>
+
+                        <p class="deck-hint">
+                            Only select a second commander if
+                            your deck legally uses two commanders,
+                            such as with Partner.
+                        </p>
+
+                    </div>
+                }
+
+            </div>
+        }
+
+        @if (!string.IsNullOrWhiteSpace(errorMessage))
+        {
+            <p class="deck-error" role="alert">
+                @errorMessage
+            </p>
+        }
+
+        <div class="deck-form-actions">
+
+            <button type="button"
+                    class="deck-primary-button"
+                    disabled="@isImporting"
+                    @onclick="ImportDeck">
+
+                @(isImporting ? "Importing..." : "Import Deck")
+
+            </button>
+
+            <a href="/decks"
+               class="deck-secondary-button">
+                View My Decks
+            </a>
+
+        </div>
+
+    </div>
+
+</div>
+
+@code {
+
+    private string deckName = "";
+    private string deckText = "";
+
+    private string selectedCommander = "";
+    private string secondCommander = "";
+
+    private string? errorMessage;
+    private string? previewSource;
+
+    private bool isImporting = false;
+
+    private List<DeckEntry> previewCards = new();
+
+    private bool HasCommander =>
+        previewCards.Any(c => c.Section == "Commander");
+
+    private List<DeckEntry> CommanderOptions =>
+        previewCards
+            .Where(c => c.Section == "Main Deck")
+            .OrderBy(c => c.Name)
+            .ToList();
+
+    private void PreviewDeck()
+    {
+        errorMessage = null;
+        previewCards.Clear();
+
+        selectedCommander = "";
+        secondCommander = "";
+        previewSource = null;
+
+        try
+        {
+            previewCards = DeckTextParser.Parse(deckText);
+            previewSource = deckText;
+        }
+        catch (FormatException ex)
+        {
+            errorMessage = ex.Message;
+        }
+    }
+
+    private void ImportDeck()
+    {
+        if (isImporting)
+            return;
+
+        errorMessage = null;
+
+        if (string.IsNullOrWhiteSpace(deckName))
+        {
+            errorMessage = "Please enter a deck name.";
+            return;
+        }
+
+        isImporting = true;
+
+        try
+        {
+            List<DeckEntry> cards =
+                DeckTextParser.Parse(deckText);
+
+            bool hasCommander = cards.Any(c =>
+                c.Section == "Commander");
+
+            string textToImport = deckText;
+
+            if (!hasCommander)
+            {
+                if (previewSource != deckText)
+                {
+                    throw new FormatException(
+                        "Preview your deck before selecting a commander.");
+                }
+
+                if (string.IsNullOrWhiteSpace(selectedCommander))
+                {
+                    throw new FormatException(
+                        "Please select your commander.");
+                }
+
+                if (selectedCommander == secondCommander)
+                {
+                    throw new FormatException(
+                        "The two commanders must be different cards.");
+                }
+
+                PromoteCommander(cards, selectedCommander);
+
+                if (!string.IsNullOrWhiteSpace(secondCommander))
+                {
+                    PromoteCommander(cards, secondCommander);
+                }
+
+                textToImport = BuildDeckText(cards);
+            }
+
+            Deck importedDeck = DeckService.ImportDeck(
+                deckName,
+                textToImport
+            );
+
+            Navigation.NavigateTo(
+                $"/decks/{importedDeck.Id}"
+            );
+        }
+        catch (FormatException ex)
+        {
+            errorMessage = ex.Message;
+        }
+        catch (IOException)
+        {
+            errorMessage = "Unable to save the deck file.";
+        }
+        catch (UnauthorizedAccessException)
+        {
+            errorMessage = "Permission denied while saving the deck.";
+        }
+        finally
+        {
+            isImporting = false;
+        }
+    }
+
+    private static void PromoteCommander(
+        List<DeckEntry> cards,
+        string name)
+    {
+        DeckEntry? entry = cards.FirstOrDefault(c =>
+            c.Section == "Main Deck" &&
+            c.Name.Equals(
+                name,
+                StringComparison.OrdinalIgnoreCase));
+
+        if (entry == null || entry.Quantity < 1)
+        {
+            throw new FormatException(
+                $"Could not find commander: {name}");
+        }
+
+        entry.Quantity--;
+
+        if (entry.Quantity == 0)
+        {
+            cards.Remove(entry);
+        }
+
+        cards.Add(new DeckEntry
+        {
+            Name = name,
+            Quantity = 1,
+            Section = "Commander"
+        });
+    }
+
+    private static string BuildDeckText(List<DeckEntry> cards)
+    {
+        string[] sections =
+        {
+            "Commander",
+            "Main Deck",
+            "Sideboard",
+            "Maybeboard",
+            "Companion"
+        };
+
+        List<string> lines = new();
+
+        foreach (string section in sections)
+        {
+            List<DeckEntry> sectionCards = cards
+                .Where(c => c.Section == section)
+                .ToList();
+
+            if (sectionCards.Count == 0)
+                continue;
+
+            lines.Add(
+                section == "Main Deck" ? "Deck" : section
+            );
+
+            foreach (DeckEntry card in sectionCards)
+            {
+                lines.Add($"{card.Quantity} {card.Name}");
+            }
+
+            lines.Add("");
+        }
+
+        return string.Join(Environment.NewLine, lines);
+    }
+}

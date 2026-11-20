@@ -68,6 +68,21 @@
         margin: 0;
     }
 
+a.small-card {
+    transition: background-color 0.2s, border-color 0.2s;
+}
+
+    a.small-card:hover {
+        background-color: #302025;
+        border-color: #e03547;
+        color: #ffffff;
+    }
+
+    a.small-card:focus-visible {
+        outline: 2px solid #e03547;
+        outline-offset: 4px;
+    }
+
 @media (max-width: 640px) {
     .secondary-cards {
         grid-template-columns: 1fr;
@@ -83,5 +98,22 @@
 
     .deck-card h1 {
         font-size: 28px;
+    }
+}
+
+.primary-cards {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 24px;
+}
+
+    .primary-cards .deck-card {
+        width: 100%;
+        height: 100%;
+    }
+
+@media (max-width: 640px) {
+    .primary-cards {
+        grid-template-columns: 1fr;
     }
 }
