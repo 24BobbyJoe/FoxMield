@@ -51,11 +51,11 @@ namespace FoxMield.Components.Services
                     {
                         Id = item.GetProperty("id").GetGuid(),
 
-                        Name = item.GetProperty("name").GetString() ?? "",
+                        Name = GetString(item, "name"),
 
                         ManaCost = GetString(item, "mana_cost"),
 
-                        Cmc = item.GetProperty("cmc").GetDouble(),
+                        Cmc = item.TryGetProperty("cmc", out var cmc)? cmc.GetDouble(): 0,
 
                         TypeLine = GetString(item, "type_line"),
 
@@ -67,17 +67,9 @@ namespace FoxMield.Components.Services
                                         .Select(color => color.GetString()))
                                 : "",
 
+                        ColorIdentity = string.Join("", GetStringArray(item, "color_identity")),
 
-                        ColorIdentity = string.Join("",
-                            item.GetProperty("color_identity")
-                                .EnumerateArray()
-                                .Select(color => color.GetString())
-                        ),
-
-                        Keywords = item.GetProperty("keywords")
-                            .EnumerateArray()
-                            .Select(keyword => keyword.GetString() ?? "")
-                            .ToArray(),
+                        Keywords = GetStringArray(item, "keywords"),
 
                         Power = GetNullableString(item, "power"),
 
@@ -91,9 +83,7 @@ namespace FoxMield.Components.Services
 
                         ImageUris = GetImageUris(item),
 
-                        Legality = item.GetProperty("legalities")
-                            .GetProperty("commander")
-                            .GetString() == "legal"
+                        Legality = item.TryGetProperty("legalities", out var legalities) && legalities.TryGetProperty("commander", out var commander) && commander.GetString() == "legal"
                     };
 
                     cards.Add(card);
@@ -158,6 +148,19 @@ namespace FoxMield.Components.Services
             }
 
             return images;
+        }
+        private static string[] GetStringArray(JsonElement item, string property)
+        {
+            if (!item.TryGetProperty(property, out JsonElement value) ||
+                value.ValueKind != JsonValueKind.Array)
+            {
+                return Array.Empty<string>();
+            }
+
+            return value.EnumerateArray()
+                .Where(element => element.ValueKind == JsonValueKind.String)
+                .Select(element => element.GetString() ?? "")
+                .ToArray();
         }
     }
 }
