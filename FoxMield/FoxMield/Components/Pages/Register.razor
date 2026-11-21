@@ -1,0 +1,33 @@
+﻿@page "/register"
+
+<PageTitle>Register</PageTitle>
+
+<div class="account-container">
+    <h1>Create Account</h1>
+
+    <form method="post" action="/account/register">
+        <AntiforgeryToken />
+
+        <div>
+            <label for="username">Username</label>
+            <input id="username" name="Username" type="text"
+                   required minlength="3" />
+        </div>
+
+        <div>
+            <label for="email">Email</label>
+            <input id="email" name="Email" type="email"
+                   required />
+        </div>
+
+        <div>
+            <label for="password">Password</label>
+            <input id="password" name="Password" type="password"
+                   required minlength="8" />
+        </div>
+
+        <button type="submit">Create Account</button>
+    </form>
+
+    <p>Already have an account? <a href="/login">Log in</a></p>
+</div>
