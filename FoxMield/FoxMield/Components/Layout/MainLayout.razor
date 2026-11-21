@@ -1,4 +1,6 @@
-﻿@inherits LayoutComponentBase
+﻿
+@inherits LayoutComponentBase
+@using Microsoft.AspNetCore.Components.Authorization
 
 <div class="page">
     <div class="sidebar">
@@ -7,16 +9,43 @@
 
     <main>
         <header class="top-row">
-            @*if we want text on the top on the site, we can put it here with
-                <span class="header-label">INSERT TEXT HERE</span>
-            *@
+            <div class="account-dropdown">
+                <details>
+                    <summary>Account ▾</summary>
+
+                    <div class="account-dropdown-menu">
+                        <AuthorizeView>
+                            <Authorized>
+                                <div class="account-status">
+                                    You are logged in
+                                </div>
+
+                                <a href="/decks">My Decks</a>
+
+                                <form method="post" action="/account/logout">
+                                    <AntiforgeryToken />
+                                    <button type="submit">
+                                        Logout
+                                    </button>
+                                </form>
+                            </Authorized>
+
+                            <NotAuthorized>
+                                <a href="/login">Login</a>
+                                <a href="/register">Register</a>
+                            </NotAuthorized>
+                        </AuthorizeView>
+                    </div>
+                </details>
+            </div>
         </header>
+
         <article class="content">
             @Body
         </article>
 
         <footer class="site-footer">
-            @@ Foxmield 2026
+            © FoxMield 2026
         </footer>
     </main>
 </div>

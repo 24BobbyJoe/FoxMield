@@ -1,11 +1,15 @@
-﻿@page "/deck-import"
+﻿
+@page "/deck-import"
 @rendermode InteractiveServer
 
 @using FoxMield.Components.Models
 @using FoxMield.Components.Services
+@using Microsoft.AspNetCore.Components.Authorization
+@using System.Security.Claims
 
 @inject DeckService DeckService
 @inject NavigationManager Navigation
+@inject AuthenticationStateProvider AuthenticationStateProvider
 
 <PageTitle>Import Deck | FoxMield</PageTitle>
 
@@ -223,7 +227,7 @@
         }
     }
 
-    private void ImportDeck()
+    private async Task ImportDeck()
     {
         if (isImporting)
             return;
@@ -240,6 +244,18 @@
 
         try
         {
+            var authState =
+                await AuthenticationStateProvider.GetAuthenticationStateAsync();
+
+            string? userId = authState.User
+                .FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
+            if (string.IsNullOrEmpty(userId))
+            {
+                Navigation.NavigateTo("/login");
+                return;
+            }
+
             List<DeckEntry> cards =
                 DeckTextParser.Parse(deckText);
 
@@ -278,9 +294,10 @@
                 textToImport = BuildDeckText(cards);
             }
 
-            Deck importedDeck = DeckService.ImportDeck(
+            Deck importedDeck = await DeckService.ImportDeckAsync(
                 deckName,
-                textToImport
+                textToImport,
+                userId
             );
 
             Navigation.NavigateTo(
@@ -291,13 +308,13 @@
         {
             errorMessage = ex.Message;
         }
-        catch (IOException)
-        {
-            errorMessage = "Unable to save the deck file.";
-        }
         catch (UnauthorizedAccessException)
         {
-            errorMessage = "Permission denied while saving the deck.";
+            errorMessage = "You must be logged in to import a deck.";
+        }
+        catch (Exception)
+        {
+            errorMessage = "Something went wrong while importing your deck.";
         }
         finally
         {

@@ -1,65 +1,38 @@
-﻿using System.Text.Json;
-using Microsoft.AspNetCore.Hosting;
+﻿
+using FoxMield.App_Data;
 using FoxMield.Components.Models;
+using MongoDB.Driver;
 
 namespace FoxMield.Components.Services
 {
     public class DeckService
     {
-        private readonly object _lock = new();
+        private readonly MongoDbContext _database;
 
-        private readonly string _filePath;
-
-        private readonly List<Deck> _decks;
-
-        private static readonly JsonSerializerOptions JsonOptions = new()
+        public DeckService(MongoDbContext database)
         {
-            WriteIndented = true
-        };
-
-        public DeckService(IWebHostEnvironment environment)
-        {
-            _filePath = Path.Combine(
-                environment.ContentRootPath,
-                "App_Data",
-                "decks.json"
-            );
-
-            if (File.Exists(_filePath))
-            {
-                string json = File.ReadAllText(_filePath);
-
-                _decks = JsonSerializer.Deserialize<List<Deck>>(json)
-                    ?? new List<Deck>();
-            }
-            else
-            {
-                _decks = new List<Deck>();
-            }
+            _database = database;
         }
 
-        public List<Deck> GetAllDecks()
+        public async Task<List<Deck>> GetAllDecksAsync(string userId)
         {
-            lock (_lock)
-            {
-                return _decks
-                    .OrderByDescending(d => d.ImportedAt)
-                    .Select(CopyDeck)
-                    .ToList();
-            }
+            return await _database.Decks
+                .Find(d => d.UserId == userId)
+                .SortByDescending(d => d.ImportedAt)
+                .ToListAsync();
         }
 
-        public Deck? GetDeck(Guid id)
+        public async Task<Deck?> GetDeckAsync(Guid id, string userId)
         {
-            lock (_lock)
-            {
-                Deck? deck = _decks.FirstOrDefault(d => d.Id == id);
-
-                return deck == null ? null : CopyDeck(deck);
-            }
+            return await _database.Decks
+                .Find(d => d.Id == id && d.UserId == userId)
+                .FirstOrDefaultAsync();
         }
 
-        public Deck ImportDeck(string name, string deckText)
+        public async Task<Deck> ImportDeckAsync(
+            string name,
+            string deckText,
+            string userId)
         {
             if (string.IsNullOrWhiteSpace(name))
             {
@@ -67,81 +40,26 @@ namespace FoxMield.Components.Services
                     "Please enter a name for your deck.");
             }
 
+            if (string.IsNullOrWhiteSpace(userId))
+            {
+                throw new UnauthorizedAccessException(
+                    "You must be logged in to import a deck.");
+            }
+
             List<DeckEntry> cards = DeckTextParser.Parse(deckText);
 
             Deck deck = new Deck
             {
                 Id = Guid.NewGuid(),
+                UserId = userId,
                 Name = name.Trim(),
                 ImportedAt = DateTimeOffset.UtcNow,
                 Cards = cards
             };
 
-            lock (_lock)
-            {
-                _decks.Add(deck);
+            await _database.Decks.InsertOneAsync(deck);
 
-                try
-                {
-                    SaveDecks();
-                }
-                catch
-                {
-                    _decks.Remove(deck);
-                    throw;
-                }
-            }
-
-            return CopyDeck(deck);
-        }
-
-        private void SaveDecks()
-        {
-            string directory = Path.GetDirectoryName(_filePath)!;
-
-            Directory.CreateDirectory(directory);
-
-            string json = JsonSerializer.Serialize(
-                _decks,
-                JsonOptions
-            );
-
-            string temporaryFile = _filePath + ".tmp";
-
-            try
-            {
-                File.WriteAllText(temporaryFile, json);
-
-                File.Move(
-                    temporaryFile,
-                    _filePath,
-                    overwrite: true
-                );
-            }
-            finally
-            {
-                if (File.Exists(temporaryFile))
-                {
-                    File.Delete(temporaryFile);
-                }
-            }
-        }
-
-        private static Deck CopyDeck(Deck original)
-        {
-            return new Deck
-            {
-                Id = original.Id,
-                Name = original.Name,
-                ImportedAt = original.ImportedAt,
-
-                Cards = original.Cards.Select(c => new DeckEntry
-                {
-                    Name = c.Name,
-                    Quantity = c.Quantity,
-                    Section = c.Section
-                }).ToList()
-            };
+            return deck;
         }
     }
 }
