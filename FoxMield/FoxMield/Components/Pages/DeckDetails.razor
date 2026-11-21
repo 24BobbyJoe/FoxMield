@@ -1,10 +1,12 @@
 ﻿@page "/decks/{Id:guid}"
 @rendermode InteractiveServer
 
+@using System.Text.RegularExpressions
 @using FoxMield.Components.Models
 @using FoxMield.Components.Services
 
 @inject DeckService DeckService
+@inject ScryfallService ScryfallService
 
 <PageTitle>@(deck?.Name ?? "Deck Not Found") | FoxMield</PageTitle>
 
@@ -14,38 +16,26 @@
         ← Back to My Decks
     </a>
 
-    @if (deck == null)
+    @if (deck is null)
     {
         <div class="deck-not-found">
             <h1>Deck Not Found</h1>
-
-            <p>
-                This deck could not be found
-                in your library.
-            </p>
-
-            <a href="/decks">
-                Return to My Decks
-            </a>
+            <p>This deck could not be found in your library.</p>
+            <a href="/decks">Return to My Decks</a>
         </div>
     }
-    else
-    {
-        <!-- Deck Information -->
 
+    @if (deck is not null)
+    {
         <div class="deck-details-header">
 
             <div class="deck-details-title">
-
                 <p class="deck-label">COMMANDER DECK</p>
-
                 <h1>@deck.Name</h1>
 
                 <p class="deck-import-date">
-                    Imported
-                    @deck.ImportedAt.ToLocalTime().ToString("MMMM d, yyyy")
+                    Imported @deck.ImportedAt.ToLocalTime().ToString("MMMM d, yyyy")
                 </p>
-
             </div>
 
             <div class="deck-details-stats">
@@ -69,7 +59,19 @@
 
         </div>
 
-        <!-- Commander Information -->
+        @if (isLoadingCards)
+        {
+            <div class="deck-loading">
+                Loading card information from Scryfall...
+            </div>
+        }
+
+        @if (!string.IsNullOrWhiteSpace(cardLoadError))
+        {
+            <div class="deck-load-error" role="alert">
+                @cardLoadError
+            </div>
+        }
 
         <section class="deck-commander-section">
 
@@ -84,24 +86,59 @@
                 @foreach (DeckEntry commander in deck.Cards
                     .Where(c => c.Section == "Commander"))
                 {
+                    string? imageUrl = GetCommanderImage(commander.Name);
+
                     <div class="deck-commander-card">
 
-                        <span class="deck-card-quantity">
-                            @commander.Quantity x
-                        </span>
+                        @if (imageUrl != null)
+                        {
+                            <a href="@GetCardUrl(commander.Name)"
+                               class="commander-image-link">
 
-                        <a href="@GetCardUrl(commander.Name)"
-                           class="deck-card-link">
-                            @commander.Name
-                        </a>
+                                <img src="@imageUrl"
+                                     alt="Full card image of @commander.Name"
+                                     class="commander-full-image" />
+
+                            </a>
+                        }
+                        else
+                        {
+                            <div class="commander-image-placeholder">
+                                @(isLoadingCards
+                                    ? "Loading image..."
+                                    : "Card image unavailable")
+                            </div>
+                        }
+
+                        <div class="commander-information">
+
+                            <span class="deck-label">COMMANDER</span>
+
+                            <h3>
+                                <a href="@GetCardUrl(commander.Name)"
+                                   class="deck-card-link">
+                                    @commander.Name
+                                </a>
+                            </h3>
+
+                            <p>Quantity: @commander.Quantity</p>
+
+                            @if (GetCard(commander.Name) is Card commanderData)
+                            {
+                                <p>@commanderData.TypeLine</p>
+
+                                <p>
+                                    Mana Value: @commanderData.Cmc
+                                </p>
+                            }
+
+                        </div>
 
                     </div>
                 }
             }
 
         </section>
-
-        <!-- Deck Size -->
 
         <div class="deck-count-summary">
 
@@ -129,11 +166,210 @@
 
         </div>
 
-        <!-- Main Deck and Other Sections -->
+        <section class="deck-mana-section">
+
+            <div class="deck-section-header">
+
+                <div>
+                    <h2>Mana Curve</h2>
+                    <p>
+                        Nonland cards in the main deck,
+                        excluding commanders.
+                    </p>
+                </div>
+
+            </div>
+
+            @if (isLoadingCards)
+            {
+                <p class="deck-chart-message">
+                    Calculating mana curve...
+                </p>
+            }
+            else
+            {
+                int[] curve = GetManaCurve();
+
+                int maxCount = Math.Max(1, curve.Max());
+
+                <div class="mana-chart-container">
+
+                    <svg class="mana-curve-svg"
+                         viewBox="0 0 700 245"
+                         role="img"
+                         aria-label="Mana curve showing the number of cards at each mana value">
+
+                        <title>Deck Mana Curve</title>
+
+                        <line x1="40" y1="50"
+                              x2="680" y2="50"
+                              class="mana-grid-line" />
+
+                        <line x1="40" y1="100"
+                              x2="680" y2="100"
+                              class="mana-grid-line" />
+
+                        <line x1="40" y1="150"
+                              x2="680" y2="150"
+                              class="mana-grid-line" />
+
+                        <line x1="40" y1="200"
+                              x2="680" y2="200"
+                              class="mana-axis-line" />
+
+                        @for (int i = 0; i < 8; i++)
+                        {
+                            int count = curve[i];
+
+                            double x = 50 + i * 79;
+                            double height = (double)count / maxCount * 145;
+                            double y = 200 - height;
+
+                            <rect x="@x"
+                                  y="@y"
+                                  width="55"
+                                  height="@height"
+                                  rx="5"
+                                  class="mana-curve-bar">
+
+                                <title>
+                                    Mana Value @(i == 7 ? "7+" : i.ToString()):
+                                    @count cards
+                                </title>
+
+                            </rect>
+                           
+                            <text>
+                                <text x="@(x + 27.5)"
+                                      y="@(y - 8)"
+                                      text-anchor="middle"
+                                      class="mana-bar-count">
+                                    @count
+                                </text>
+                            </text>
+
+                            <text>
+                                <text x="@(x + 27.5)"
+                                      y="222"
+                                      text-anchor="middle"
+                                      class="mana-bar-label">
+                                    @(i == 7 ? "7+" : i.ToString())
+                                </text>
+                            </text>
+                        }
+
+                    </svg>
+
+                    <p class="mana-chart-caption">
+                        Mana Value
+                    </p>
+
+                </div>
+
+                <div class="mana-chart-summary">
+                    <span>
+                        @curve.Sum() nonland cards included
+                    </span>
+
+                    <span>
+                        @deck.MainDeckCount total main deck cards
+                    </span>
+                </div>
+
+                @if (deck.Cards.Any(c =>
+                    c.Section == "Main Deck" &&
+                    !cardDetails.ContainsKey(c.Name)))
+                {
+                    <p class="deck-chart-message">
+                        Some cards could not be retrieved from Scryfall.
+                        They are omitted from the mana curve.
+                    </p>
+                }
+            }
+
+        </section>
+
+        <div class="deck-type-heading">
+            <h2>Cards by Type</h2>
+
+            <p>
+                Main deck cards organized by their primary card type.
+            </p>
+        </div>
+
+        @if (isLoadingCards)
+        {
+            <p class="deck-chart-message">
+                Organizing cards by type...
+            </p>
+        }
+        else
+        {
+            @foreach (string type in CardTypeOrder)
+            {
+                List<DeckEntry> matchingCards = deck.Cards
+                    .Where(c => c.Section == "Main Deck" &&
+                                GetPrimaryType(c.Name) == type)
+                    .OrderBy(c => c.Name)
+                    .ToList();
+
+                if (matchingCards.Count > 0)
+                {
+                    <section class="deck-cards-section">
+
+                        <div class="deck-section-header">
+
+                            <h2>@type</h2>
+
+                            <span>
+                                @matchingCards.Sum(c => c.Quantity)
+                                Cards
+                            </span>
+
+                        </div>
+
+                        <div class="deck-cards-list">
+
+                            @foreach (DeckEntry entry in matchingCards)
+                            {
+                                <div class="deck-card-row">
+
+                                    <span class="deck-card-quantity">
+                                        @entry.Quantity x
+                                    </span>
+
+                                    <a href="@GetCardUrl(entry.Name)"
+                                       class="deck-card-link">
+                                        @entry.Name
+                                    </a>
+
+                                    @if (GetCard(entry.Name) is Card cardInfo)
+                                    {
+                                        <span class="deck-card-mana-value">
+                                            MV @cardInfo.Cmc
+                                        </span>
+                                    }
+
+                                    <span class="deck-card-arrow"
+                                          aria-hidden="true">
+                                        →
+                                    </span>
+
+                                </div>
+                            }
+
+                        </div>
+
+                    </section>
+                }
+            }
+        }
+
         @foreach (var section in deck.Cards
-                    .Where(c => c.Section != "Commander")
-                    .GroupBy(c => c.Section)
-                    .OrderBy(s => GetSectionOrder(s.Key)))
+            .Where(c => c.Section != "Commander" &&
+                        c.Section != "Main Deck")
+            .GroupBy(c => c.Section)
+            .OrderBy(s => GetSectionOrder(s.Key)))
         {
             <section class="deck-cards-section">
 
@@ -149,18 +385,17 @@
 
                 <div class="deck-cards-list">
 
-                    @foreach (DeckEntry card in section
-                        .OrderBy(c => c.Name))
+                    @foreach (DeckEntry entry in section.OrderBy(c => c.Name))
                     {
                         <div class="deck-card-row">
 
                             <span class="deck-card-quantity">
-                                @card.Quantity x
+                                @entry.Quantity x
                             </span>
 
-                            <a href="@GetCardUrl(card.Name)"
+                            <a href="@GetCardUrl(entry.Name)"
                                class="deck-card-link">
-                                @card.Name
+                                @entry.Name
                             </a>
 
                             <span class="deck-card-arrow"
@@ -175,9 +410,7 @@
 
             </section>
         }
-
     }
-
 </div>
 
 @code {
@@ -187,9 +420,179 @@
 
     private Deck? deck;
 
-    protected override void OnParametersSet()
+    private Dictionary<string, Card> cardDetails =
+        new(StringComparer.OrdinalIgnoreCase);
+
+    private bool isLoadingCards = false;
+
+    private string? cardLoadError;
+
+    private static readonly string[] CardTypeOrder =
+    {
+        "Planeswalker",
+        "Creature",
+        "Artifact",
+        "Enchantment",
+        "Land",
+        "Instant",
+        "Sorcery",
+        "Other"
+    };
+
+    protected override async Task OnParametersSetAsync()
     {
         deck = DeckService.GetDeck(Id);
+
+        cardDetails.Clear();
+        cardLoadError = null;
+
+        if (deck == null)
+            return;
+
+        isLoadingCards = true;
+
+        try
+        {
+            List<string> names = deck.Cards
+                .Select(c => c.Name)
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToList();
+
+            List<Card> fetchedCards =
+                await ScryfallService.GetCardsByNames(names);
+
+            foreach (string name in names)
+            {
+                Card? match = fetchedCards.FirstOrDefault(c =>
+                    c.Name.Equals(
+                        name,
+                        StringComparison.OrdinalIgnoreCase));
+
+                match ??= fetchedCards.FirstOrDefault(c =>
+                    c.Name.StartsWith(
+                        name + " //",
+                        StringComparison.OrdinalIgnoreCase));
+
+                if (match != null)
+                {
+                    cardDetails[name] = match;
+                }
+            }
+        }
+        catch (Exception ex) when (
+            ex is HttpRequestException ||
+            ex is TaskCanceledException ||
+            ex is System.Text.Json.JsonException)
+        {
+            cardLoadError =
+                "Unable to retrieve card information from Scryfall.";
+        }
+        finally
+        {
+            isLoadingCards = false;
+        }
+    }
+
+    private Card? GetCard(string name)
+    {
+        return cardDetails.TryGetValue(name, out Card? card)
+            ? card
+            : null;
+    }
+
+    private string? GetCommanderImage(string name)
+    {
+        Card? card = GetCard(name);
+
+        if (card == null)
+            return null;
+
+        string[] preferredSizes =
+        {
+            "large",
+            "normal",
+            "png",
+            "border_crop"
+        };
+
+        foreach (string size in preferredSizes)
+        {
+            if (card.ImageUris.TryGetValue(size, out Uri? image))
+            {
+                return image.ToString();
+            }
+        }
+
+        return null;
+    }
+
+    private static bool HasType(string typeLine, string type)
+    {
+        return Regex.IsMatch(
+            typeLine,
+            $@"\b{Regex.Escape(type)}\b",
+            RegexOptions.IgnoreCase);
+    }
+
+    private string GetPrimaryType(string cardName)
+    {
+        Card? card = GetCard(cardName);
+
+        if (card == null)
+            return "Other";
+
+        string typeLine = card.TypeLine;
+
+        if (HasType(typeLine, "Land"))
+            return "Land";
+
+        if (HasType(typeLine, "Planeswalker"))
+            return "Planeswalker";
+
+        if (HasType(typeLine, "Creature"))
+            return "Creature";
+
+        if (HasType(typeLine, "Artifact"))
+            return "Artifact";
+
+        if (HasType(typeLine, "Enchantment"))
+            return "Enchantment";
+
+        if (HasType(typeLine, "Instant"))
+            return "Instant";
+
+        if (HasType(typeLine, "Sorcery"))
+            return "Sorcery";
+
+        return "Other";
+    }
+
+    private int[] GetManaCurve()
+    {
+        int[] curve = new int[8];
+
+        if (deck == null)
+            return curve;
+
+        foreach (DeckEntry entry in deck.Cards
+            .Where(c => c.Section == "Main Deck"))
+        {
+            Card? card = GetCard(entry.Name);
+
+            if (card == null)
+                continue;
+
+            if (HasType(card.TypeLine, "Land"))
+                continue;
+
+            int manaValue = (int)Math.Min(
+                7,
+                Math.Max(0, Math.Floor(card.Cmc)));
+
+            curve[manaValue] += entry.Quantity;
+        }
+
+        return curve;
     }
 
     private static string GetCardUrl(string cardName)
