@@ -333,3 +333,243 @@
         font-size: 14px;
     }
 }
+
+/* =====================================
+   Commander Full Card Images
+   ===================================== */
+
+.deck-commander-card {
+    display: flex;
+    align-items: flex-start;
+    flex-wrap: wrap;
+    gap: 28px;
+}
+
+.commander-image-link {
+    display: block;
+    width: 245px;
+    max-width: 100%;
+    flex-shrink: 0;
+    border-radius: 12px;
+    transition: transform 0.2s;
+}
+
+    .commander-image-link:hover {
+        transform: scale(1.025);
+    }
+
+.commander-full-image {
+    display: block;
+    width: 100%;
+    height: auto;
+    border-radius: 12px;
+}
+
+.commander-image-placeholder {
+    width: 245px;
+    min-height: 330px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 20px;
+    background: #242428;
+    color: #9999a3;
+    border: 1px dashed #55555e;
+    border-radius: 12px;
+}
+
+.commander-information {
+    flex: 1;
+    min-width: 200px;
+    padding-top: 12px;
+}
+
+    .commander-information h3 {
+        margin: 10px 0 20px;
+        font-size: 24px;
+    }
+
+        .commander-information h3 .deck-card-link {
+            font-size: inherit;
+            color: #ffffff;
+        }
+
+    .commander-information p {
+        color: #b8b8bf;
+        margin-bottom: 12px;
+        line-height: 1.5;
+    }
+
+/* =====================================
+   Loading / Errors
+   ===================================== */
+
+.deck-loading,
+.deck-load-error {
+    padding: 16px 20px;
+    margin-bottom: 24px;
+    border-radius: 8px;
+    font-size: 14px;
+}
+
+.deck-loading {
+    color: #b8b8bf;
+    background: #242428;
+    border: 1px solid #3a3a40;
+}
+
+.deck-load-error {
+    color: #ff8a96;
+    background: #302025;
+    border: 1px solid #922534;
+}
+
+/* =====================================
+   Mana Curve Panel
+   ===================================== */
+
+.deck-mana-section {
+    margin-bottom: 32px;
+    background-color: #242428;
+    border: 1px solid #3a3a40;
+    border-radius: 12px;
+    overflow: hidden;
+}
+
+    .deck-mana-section .deck-section-header p {
+        margin: 8px 0 0;
+        color: #9999a3;
+        font-size: 13px;
+    }
+
+.mana-chart-container {
+    padding: 25px 28px 12px;
+    overflow-x: auto;
+}
+
+.mana-curve-svg {
+    display: block;
+    width: 100%;
+    height: auto;
+    min-width: 400px;
+    overflow: visible;
+}
+
+.mana-grid-line {
+    stroke: #36363d;
+    stroke-width: 1;
+    stroke-dasharray: 4 5;
+}
+
+.mana-axis-line {
+    stroke: #686874;
+    stroke-width: 1.5px;
+}
+
+.mana-curve-bar {
+    fill: #b32d42;
+    transition: fill 0.2s;
+}
+
+    .mana-curve-bar:hover {
+        fill: #ed465b;
+    }
+
+.mana-bar-count {
+    fill: #ffffff;
+    font-size: 15px;
+    font-weight: 700;
+}
+
+.mana-bar-label {
+    fill: #b8b8bf;
+    font-size: 16px;
+    font-weight: 600;
+}
+
+.mana-chart-caption {
+    text-align: center;
+    color: #9999a3;
+    font-size: 13px;
+    margin: 0;
+}
+
+.mana-chart-summary {
+    display: flex;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 15px;
+    padding: 18px 25px;
+    border-top: 1px solid #35353a;
+    color: #b8b8bf;
+    font-size: 13px;
+}
+
+.deck-chart-message {
+    padding: 20px 25px;
+    color: #b8b8bf;
+    font-size: 14px;
+}
+
+/* =====================================
+   Cards by Type
+   ===================================== */
+
+.deck-type-heading {
+    margin: 35px 0 22px;
+}
+
+    .deck-type-heading h2 {
+        color: #ffffff;
+        font-size: 26px;
+        margin-bottom: 10px;
+    }
+
+    .deck-type-heading p {
+        color: #9999a3;
+        font-size: 14px;
+    }
+
+.deck-card-mana-value {
+    color: #9999a3;
+    font-size: 12px;
+    white-space: nowrap;
+    min-width: 48px;
+    text-align: right;
+}
+
+@media (max-width: 650px) {
+
+    .deck-commander-card {
+        flex-direction: column;
+        align-items: center;
+    }
+
+    .commander-information {
+        width: 100%;
+        text-align: center;
+    }
+
+    .commander-image-link,
+    .commander-image-placeholder {
+        width: 220px;
+    }
+
+    .mana-chart-container {
+        padding: 18px 12px;
+    }
+
+    .mana-chart-summary {
+        flex-direction: column;
+        gap: 8px;
+    }
+
+    .deck-type-heading h2 {
+        font-size: 22px;
+    }
+
+    .deck-card-row {
+        gap: 10px;
+    }
+}

@@ -59,7 +59,13 @@ namespace FoxMield.Components.Services
 
                         TypeLine = GetString(item, "type_line"),
 
-                        Color = string.Join("", GetStringArray(item, "colors")),
+
+                        Color = item.TryGetProperty("colors", out var colors)
+                            && colors.ValueKind == JsonValueKind.Array
+                                ? string.Join("",
+                                    colors.EnumerateArray()
+                                        .Select(color => color.GetString()))
+                                : "",
 
                         ColorIdentity = string.Join("", GetStringArray(item, "color_identity")),
 
