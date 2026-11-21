@@ -21,9 +21,13 @@ namespace FoxMield.App_Data
                 ?? throw new InvalidOperationException(
                     "MongoDB connection string is missing.");
 
+            string databaseName =
+                configuration["MongoDB:DatabaseName"]
+                ?? "FoxMieldDB";
+
             var client = new MongoClient(connectionString);
 
-            _database = client.GetDatabase("FoxMieldDB");
+            _database = client.GetDatabase(databaseName);
         }
 
         public void TestConnection()

@@ -24,6 +24,7 @@ builder.Services.AddScoped<CardService>();
 builder.Services.AddScoped<DeckService>();
 builder.Services.AddSingleton<MongoDbContext>();
 builder.Services.AddScoped<AccountService>();
+builder.Services.AddScoped<CardAnalysisService>();
 
 builder.Services.AddAuthentication(
     CookieAuthenticationDefaults.AuthenticationScheme

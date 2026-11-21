@@ -1,19 +1,132 @@
 ﻿@page "/DeckAnalysis"
 @rendermode InteractiveServer
 
+@using FoxMield.Components.Models
+@using FoxMield.Components.Services
+@using Microsoft.AspNetCore.Components.Authorization
+@using System.Security.Claims
+
+@inject DeckService DeckService
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject ScryfallService ScryfallService
+@inject CardAnalysisService CardAnalysisService
+@inject NavigationManager Navigation
+
 <PageTitle>Deck Analysis</PageTitle>
 
 <h1>Deck Analysis</h1>
 
-<p role="status">Current count: @currentCount</p>
+@if (isLoading)
+{
+    <p>Loading your decks...</p>
+}
+else if (decks.Count == 0)
+{
+    <p>You haven't imported any decks yet.</p>
+    <a href="/ImportDeck" class="btn btn-primary">Import a Deck</a>
+}
+else
+{
+    <div class="mb-3">
+        <label for="deckSelect">Select a deck:</label>
 
-<button class="btn btn-primary" @onclick="IncrementCount">Click me</button>
+        <select id="deckSelect"
+                class="form-select"
+                @bind="selectedDeckId"
+                @bind:after="AnalyzeSelectedDeck">
+            <option value="">Choose a deck</option>
+
+            @foreach (Deck deck in decks)
+            {
+                <option value="@deck.Id">@deck.Name</option>
+            }
+        </select>
+    </div>
+
+    @if (analysis != null)
+    {
+        <h2>@analysis.DeckName</h2>
+
+        <p>Cards analyzed: @analysis.TotalCardsAnalyzed</p>
+
+        <h3>Card Roles</h3>
+
+        @foreach (var role in analysis.RoleCounts)
+        {
+            <p>@role.Key: @role.Value</p>
+        }
+
+        <h3>Mechanics</h3>
+
+        @foreach (var mechanic in analysis.MechanicCounts)
+        {
+            <p>@mechanic.Key: @mechanic.Value</p>
+        }
+    }
+}
 
 @code {
-    private int currentCount = 0;
+    private List<Deck> decks = new();
 
-    private void IncrementCount()
+    private string selectedDeckId = "";
+
+    private FoxMield.Components.Models.DeckAnalysis? analysis;
+
+    private bool isLoading = true;
+
+    protected override async Task OnInitializedAsync()
     {
-        currentCount++;
+        var authState =
+            await AuthenticationStateProvider.GetAuthenticationStateAsync();
+
+        string? userId = authState.User
+            .FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
+        if (string.IsNullOrEmpty(userId))
+        {
+            Navigation.NavigateTo("/login");
+            return;
+        }
+
+        decks = await DeckService.GetAllDecksAsync(userId);
+
+        isLoading = false;
+    }
+
+    private async Task AnalyzeSelectedDeck()
+    {
+        analysis = null;
+
+        if (!Guid.TryParse(selectedDeckId, out Guid deckId))
+            return;
+
+        var authState =
+            await AuthenticationStateProvider.GetAuthenticationStateAsync();
+
+        string? userId = authState.User
+            .FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
+        if (string.IsNullOrEmpty(userId))
+            return;
+
+        Deck? selectedDeck =
+            await DeckService.GetDeckAsync(deckId, userId);
+
+        if (selectedDeck == null)
+            return;
+
+        List<string> names = selectedDeck.Cards
+            .Select(card => card.Name)
+            .Distinct()
+            .ToList();
+
+        List<Card> cards =
+            await ScryfallService.GetCardsByNames(names);
+
+        analysis = CardAnalysisService.CreateDeckAnalysis(
+            selectedDeck.Id,
+            selectedDeck.Name,
+            cards
+        );
     }
 }
