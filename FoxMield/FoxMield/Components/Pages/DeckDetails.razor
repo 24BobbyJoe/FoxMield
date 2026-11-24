@@ -40,6 +40,12 @@
                 <p class="deck-import-date">
                     Imported @deck.ImportedAt.ToLocalTime().ToString("MMMM d, yyyy")
                 </p>
+                
+                <a href="@($"/deck-export?deck={deck.Id}")"
+                   class="deck-export-action">
+                    Export Deck
+                </a>
+
             </div>
 
             <div class="deck-details-stats">
@@ -370,8 +376,6 @@
         @foreach (var section in deck.Cards
             .Where(c => c.Section != "Commander" &&
                         c.Section != "Main Deck")
-        @foreach (var section in deck.Cards
-            .Where(c => c.Section != "Commander")
             .GroupBy(c => c.Section)
             .OrderBy(s => GetSectionOrder(s.Key)))
         {
@@ -528,7 +532,7 @@
             "normal",
             "png",
             "border_crop"
-        };
+    };
 
         foreach (string size in preferredSizes)
         {
@@ -608,6 +612,7 @@
         }
 
         return curve;
+    }
 
     private static string GetCardUrl(string cardName)
     {

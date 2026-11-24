@@ -1,0 +1,280 @@
+﻿@page "/deck-export"
+@rendermode InteractiveServer
+
+@using System.Security.Claims
+@using System.Text
+@using FoxMield.Components.Models
+@using FoxMield.Components.Services
+@using Microsoft.AspNetCore.Components.Authorization
+@using Microsoft.JSInterop
+
+@inject DeckService DeckService
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject NavigationManager Navigation
+@inject IJSRuntime JS
+
+<PageTitle>Export Deck | FoxMield</PageTitle>
+
+<div class="deck-export-page">
+
+    <a href="/decks" class="export-back-link">
+        ← Back to My Decks
+    </a>
+
+    <div class="export-header">
+        <h1>Export Deck</h1>
+        <p>Export your Commander decks to a file or copy them to your clipboard.</p>
+    </div>
+
+    @if (isLoading)
+    {
+        <div class="export-panel">
+            <p>Loading your decks...</p>
+        </div>
+    }
+    else if (!string.IsNullOrWhiteSpace(errorMessage))
+    {
+        <div class="export-error" role="alert">
+            @errorMessage
+        </div>
+    }
+    else if (decks.Count == 0)
+    {
+        <div class="export-panel export-empty">
+            <h2>No Decks Available</h2>
+            <p>Import a deck before exporting.</p>
+            <a href="/deck-import" class="export-download-button">
+                Import Deck
+            </a>
+        </div>
+    }
+    else
+    {
+        <section class="export-panel">
+
+            <h2>Select a Deck</h2>
+
+            <select class="export-select"
+                    @bind="selectedDeckId"
+                    @bind:after="ClearMessage">
+
+                <option value="">Choose a deck...</option>
+
+                @foreach (Deck item in decks)
+                {
+                    <option value="@item.Id">
+                        @item.Name
+                    </option>
+                }
+
+            </select>
+
+            @if (SelectedDeck is Deck selected)
+            {
+                <div class="export-deck-info">
+                    <span>@selected.TotalCards / 100 Cards</span>
+                    <span>@selected.UniqueCards Unique Entries</span>
+                </div>
+            }
+
+        </section>
+
+        <section class="export-panel">
+
+            <h2>Export Format</h2>
+
+            <p class="export-description">
+                Choose how you want your deck to be exported.
+            </p>
+
+            <select class="export-select"
+                    @bind="selectedFormat"
+                    @bind:after="ClearMessage">
+
+                <option value="@DeckExportFormat.PlainText">
+                    Plain Text (.txt)
+                </option>
+
+                <option value="@DeckExportFormat.Csv">
+                    CSV (.csv)
+                </option>
+
+                <option value="@DeckExportFormat.Json">
+                    JSON (.json)
+                </option>
+
+            </select>
+
+            <p class="export-format-description">
+                @GetFormatDescription()
+            </p>
+
+        </section>
+
+        @if (SelectedDeck is Deck currentDeck)
+        {
+            <section class="export-panel">
+
+                <div class="export-preview-header">
+                    <h2>Export Preview</h2>
+
+                    <span>
+                        @DeckExportFormatter.GetFileName(
+                            currentDeck, selectedFormat)
+                    </span>
+                </div>
+
+                <pre class="export-preview">@ExportText</pre>
+
+                @if (!string.IsNullOrWhiteSpace(statusMessage))
+                {
+                    <p class="export-status" role="status">
+                        @statusMessage
+                    </p>
+                }
+
+                <div class="export-actions">
+
+                    <button type="button"
+                            class="export-copy-button"
+                            @onclick="CopyExport">
+                        Copy to Clipboard
+                    </button>
+
+                    <a class="export-download-button"
+                       href="@DownloadHref"
+                       download="@DeckExportFormatter.GetFileName(
+                           currentDeck, selectedFormat)">
+                        Download File
+                    </a>
+
+                </div>
+
+            </section>
+        }
+    }
+
+</div>
+
+@code {
+
+    [Parameter]
+    [SupplyParameterFromQuery(Name = "deck")]
+    public Guid? PreselectedDeckId { get; set; }
+
+    private List<Deck> decks = new();
+
+    private Guid? selectedDeckId;
+
+    private DeckExportFormat selectedFormat =
+        DeckExportFormat.PlainText;
+
+    private bool isLoading = true;
+
+    private string? errorMessage;
+    private string? statusMessage;
+
+    private Deck? SelectedDeck =>
+        decks.FirstOrDefault(d => d.Id == selectedDeckId);
+
+    private string ExportText =>
+        SelectedDeck is Deck deck
+            ? DeckExportFormatter.Generate(deck, selectedFormat)
+            : "";
+
+    private string DownloadHref
+    {
+        get
+        {
+            string mediaType =
+                DeckExportFormatter.GetMediaType(selectedFormat);
+
+            string encodedText = Convert.ToBase64String(
+                Encoding.UTF8.GetBytes(ExportText));
+
+            return $"data:{mediaType};charset=utf-8;base64,{encodedText}";
+        }
+    }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        isLoading = true;
+        errorMessage = null;
+        statusMessage = null;
+
+        try
+        {
+            var authState = await AuthenticationStateProvider
+                .GetAuthenticationStateAsync();
+
+            string? userId = authState.User
+                .FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
+            if (string.IsNullOrWhiteSpace(userId))
+            {
+                Navigation.NavigateTo("/login");
+                return;
+            }
+
+            decks = await DeckService.GetAllDecksAsync(userId);
+
+            selectedDeckId =
+                PreselectedDeckId.HasValue &&
+                decks.Any(d => d.Id == PreselectedDeckId.Value)
+                    ? PreselectedDeckId
+                    : null;
+        }
+        catch (Exception)
+        {
+            errorMessage = "Unable to load your decks.";
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private string GetFormatDescription()
+    {
+        return selectedFormat switch
+        {
+            DeckExportFormat.PlainText =>
+                "A readable decklist with card quantities and sections, compatible with the FoxMield text importer.",
+
+            DeckExportFormat.Csv =>
+                "A spreadsheet-friendly file containing each card's section, quantity, and name.",
+
+            DeckExportFormat.Json =>
+                "A structured file containing the deck name, import date, and complete card list.",
+
+            _ => ""
+        };
+    }
+
+    private async Task CopyExport()
+    {
+        if (SelectedDeck == null)
+            return;
+
+        statusMessage = null;
+
+        try
+        {
+            await JS.InvokeVoidAsync(
+                "navigator.clipboard.writeText",
+                ExportText);
+
+            statusMessage = "Deck copied to clipboard!";
+        }
+        catch (JSException)
+        {
+            statusMessage =
+                "Unable to copy automatically. Select and copy the preview instead.";
+        }
+    }
+
+    private void ClearMessage()
+    {
+        statusMessage = null;
+    }
+}

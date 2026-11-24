@@ -1,0 +1,593 @@
+﻿@page "/decks/{Id:guid}/edit"
+@rendermode InteractiveServer
+
+@using FoxMield.Components.Models
+@using FoxMield.Components.Services
+@using Microsoft.AspNetCore.Components.Authorization
+@using System.Security.Claims
+
+@inject DeckService DeckService
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject NavigationManager Navigation
+@inject ScryfallService ScryfallService
+
+<PageTitle>Deck Editor | FoxMield</PageTitle>
+
+<div class="deck-editor-page">
+
+    <a href="/decks" class="editor-back-link">
+        ← Back to My Decks
+    </a>
+
+    @if (isLoading)
+    {
+        <p>Loading deck...</p>
+    }
+    else if (deck is null)
+    {
+        <h1>Deck Not Found</h1>
+        <p>@errorMessage</p>
+    }
+    else
+    {
+        <div class="editor-header">
+            <div>
+                <h1>@deck.Name</h1>
+                <p>Deck Editor</p>
+            </div>
+
+            <div class="editor-count">
+                <strong>@TotalCards / 100</strong>
+                <span>Cards</span>
+            </div>
+        </div>
+
+        <div class="editor-actions">
+            <button type="button"
+                    class="editor-save-button"
+                    disabled="@isSaving"
+                    @onclick="SaveChanges">
+                @(isSaving ? "Saving..." : "Save Changes")
+            </button>
+
+            <a href="@($"/decks/{Id}")"
+               class="editor-cancel-button">
+                Cancel
+            </a>
+        </div>
+
+        @if (!string.IsNullOrWhiteSpace(errorMessage))
+        {
+            <p class="editor-error" role="alert">
+                @errorMessage
+            </p>
+        }
+
+        <section class="editor-panel">
+
+            <h2>Add Cards</h2>
+
+            <p class="editor-hint">
+                Enter an exact Magic card name.
+                Card search will be added next.
+            </p>
+
+            <div class="editor-add-form">
+
+                <input type="text"
+                       placeholder="Card name (e.g. Sol Ring)"
+                       @bind="newCardName"
+                       @bind:event="oninput" />
+                       
+                <button type="button"
+                        class="editor-search-button"
+                        disabled="@isSearching"
+                        @onclick="SearchCards">
+                    @(isSearching ? "Searching..." : "Search Scryfall")
+                </button>
+
+                <input type="number"
+                       min="1"
+                       max="99"
+                       class="editor-quantity-input"
+                       @bind="newCardQuantity" />
+
+                <select @bind="newCardSection">
+                    @foreach (string section in Sections)
+                    {
+                        <option value="@section">
+                            @section
+                        </option>
+                    }
+                </select>
+
+                <button type="button"
+                        class="editor-add-button"
+                        @onclick="AddCard">
+                    + Add
+                </button>
+
+            </div>
+            
+            @if (!string.IsNullOrWhiteSpace(searchMessage))
+            {
+                <p class="editor-search-message">@searchMessage</p>
+            }
+
+            @if (searchResults.Count > 0)
+            {
+                <div class="editor-search-results">
+                    @foreach (string name in searchResults)
+                    {
+                        <button type="button"
+                                @key="name"
+                                @onclick="() => SelectCard(name)">
+                            @name
+                        </button>
+                    }
+                </div>
+            }
+
+        </section>
+
+        @foreach (string section in Sections)
+        {
+            var cardsInSection = workingCards
+                .Where(c => c.Section == section)
+                .OrderBy(c => c.Name)
+                .ToList();
+
+            <section class="editor-panel">
+
+                <div class="editor-section-header">
+                    <h2>@section</h2>
+                    <span>
+                        @cardsInSection.Sum(c => c.Quantity) Cards
+                    </span>
+                </div>
+
+                @if (cardsInSection.Count == 0)
+                {
+                    <p class="editor-empty">
+                        No cards in this section.
+                    </p>
+                }
+                else
+                {
+                    <div class="editor-card-list">
+
+                        @foreach (DeckEntry entry in cardsInSection)
+                        {
+                            <div class="editor-card-row" @key="entry">
+
+                                <div class="editor-card-name">
+                                    <a href="@GetCardUrl(entry.Name)">
+                                        @entry.Name
+                                    </a>
+                                </div>
+
+                                <div class="editor-card-controls">
+
+                                    @if (section != "Commander")
+                                    {
+                                        <div class="editor-quantity">
+
+                                            <button type="button"
+                                                    title="Remove one copy"
+                                                    @onclick="() => DecreaseQuantity(entry)">
+                                                −
+                                            </button>
+
+                                            <span>@entry.Quantity</span>
+
+                                            <button type="button"
+                                                    title="Add one copy"
+                                                    @onclick="() => IncreaseQuantity(entry)">
+                                                +
+                                            </button>
+
+                                        </div>
+
+                                        <button type="button"
+                                                class="editor-change-button"
+                                                @onclick="() => MakeCommander(entry)">
+                                            Make Commander
+                                        </button>
+                                    }
+                                    else
+                                    {
+                                        <span>1 Copy</span>
+
+                                        <button type="button"
+                                                class="editor-change-button"
+                                                @onclick="() => MoveToMainDeck(entry)">
+                                            Move to Main Deck
+                                        </button>
+                                    }
+
+                                    <button type="button"
+                                            class="editor-remove-button"
+                                            @onclick="() => RemoveCard(entry)">
+                                        Remove
+                                    </button>
+
+                                </div>
+
+                            </div>
+                        }
+
+                    </div>
+                }
+
+            </section>
+        }
+
+        <div class="editor-bottom-actions">
+
+            <button type="button"
+                    class="editor-save-button"
+                    disabled="@isSaving"
+                    @onclick="SaveChanges">
+                @(isSaving ? "Saving..." : "Save Changes")
+            </button>
+
+        </div>
+    }
+
+</div>
+
+@code {
+
+    [Parameter]
+    public Guid Id { get; set; }
+
+    private Deck? deck;
+
+    private string? userId;
+    private string? errorMessage;
+
+    private bool isLoading = true;
+    private bool isSaving = false;
+
+    private List<DeckEntry> workingCards = new();
+
+    private string newCardName = "";
+    private int newCardQuantity = 1;
+    private string newCardSection = "Main Deck";
+
+    private static readonly string[] Sections =
+    {
+        "Commander",
+        "Main Deck",
+        "Sideboard",
+        "Maybeboard",
+        "Companion"
+    };
+
+    private int TotalCards =>
+        workingCards
+            .Where(c =>
+                c.Section == "Commander" ||
+                c.Section == "Main Deck")
+            .Sum(c => c.Quantity);
+
+    private int CommanderCount =>
+        workingCards
+            .Where(c => c.Section == "Commander")
+            .Sum(c => c.Quantity);
+            
+    private List<string> searchResults = new();
+    private string? searchMessage;
+    private bool isSearching = false;
+
+    private async Task SearchCards()
+    {
+        if (isSearching)
+        {
+            return;
+        }
+
+        searchResults.Clear();
+        searchMessage = null;
+
+        if (newCardName.Trim().Length < 3)
+        {
+            searchMessage = "Enter at least 3 characters.";
+            return;
+        }
+
+        isSearching = true;
+
+        try
+        {
+            searchResults = await ScryfallService
+                .SearchCardNamesAsync(newCardName);
+
+            if (searchResults.Count == 0)
+            {
+                searchMessage = "No matching cards found.";
+            }
+        }
+        catch (HttpRequestException ex)
+        {
+            searchMessage =
+                ex.StatusCode == System.Net.HttpStatusCode.TooManyRequests
+                    ? "Scryfall is rate limiting requests. Try again later."
+                    : "Unable to search Scryfall right now.";
+        }
+        catch (TaskCanceledException)
+        {
+            searchMessage = "The Scryfall search timed out.";
+        }
+        finally
+        {
+            isSearching = false;
+        }
+    }
+
+    private void SelectCard(string name)
+    {
+        newCardName = name;
+        searchResults.Clear();
+        searchMessage = null;
+    }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        isLoading = true;
+        errorMessage = null;
+
+        try
+        {
+            var authState = await AuthenticationStateProvider
+                .GetAuthenticationStateAsync();
+
+            userId = authState.User
+                .FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
+            if (string.IsNullOrWhiteSpace(userId))
+            {
+                Navigation.NavigateTo("/login");
+                return;
+            }
+
+            deck = await DeckService.GetDeckAsync(Id, userId);
+
+            if (deck == null)
+            {
+                errorMessage = "This deck could not be found.";
+                return;
+            }
+
+            workingCards = deck.Cards
+                .Select(c => new DeckEntry
+                {
+                    Name = c.Name,
+                    Quantity = c.Quantity,
+                    Section = c.Section
+                })
+                .ToList();
+        }
+        catch (Exception)
+        {
+            errorMessage = "Unable to load this deck.";
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private void AddCard()
+    {
+        errorMessage = null;
+
+        string name = newCardName.Trim();
+
+        if (string.IsNullOrWhiteSpace(name))
+        {
+            errorMessage = "Please enter a card name.";
+            return;
+        }
+
+        if (newCardQuantity < 1 || newCardQuantity > 99)
+        {
+            errorMessage = "Quantity must be between 1 and 99.";
+            return;
+        }
+
+        if (newCardSection == "Commander")
+        {
+            if (newCardQuantity != 1)
+            {
+                errorMessage = "Commanders must have quantity 1.";
+                return;
+            }
+
+            if (CommanderCount >= 2)
+            {
+                errorMessage =
+                    "Move or remove a commander before adding another.";
+                return;
+            }
+
+            if (workingCards.Any(c =>
+                c.Section == "Commander" &&
+                c.Name.Equals(name,
+                    StringComparison.OrdinalIgnoreCase)))
+            {
+                errorMessage = "This card is already a commander.";
+                return;
+            }
+        }
+
+        DeckEntry? existing = workingCards.FirstOrDefault(c =>
+            c.Name.Equals(name, StringComparison.OrdinalIgnoreCase) &&
+            c.Section == newCardSection);
+
+        if (existing != null)
+        {
+            existing.Quantity += newCardQuantity;
+        }
+        else
+        {
+            workingCards.Add(new DeckEntry
+            {
+                Name = name,
+                Quantity = newCardQuantity,
+                Section = newCardSection
+            });
+        }
+
+        newCardName = "";
+        newCardQuantity = 1;
+    }
+
+    private void IncreaseQuantity(DeckEntry entry)
+    {
+        errorMessage = null;
+
+        if (entry.Quantity < 99)
+        {
+            entry.Quantity++;
+        }
+    }
+
+    private void DecreaseQuantity(DeckEntry entry)
+    {
+        errorMessage = null;
+
+        if (entry.Quantity > 1)
+        {
+            entry.Quantity--;
+        }
+        else
+        {
+            workingCards.Remove(entry);
+        }
+    }
+
+    private void RemoveCard(DeckEntry entry)
+    {
+        errorMessage = null;
+        workingCards.Remove(entry);
+    }
+
+    private void MakeCommander(DeckEntry entry)
+    {
+        errorMessage = null;
+
+        if (CommanderCount >= 2)
+        {
+            errorMessage =
+                "Move or remove an existing commander first.";
+            return;
+        }
+
+        if (workingCards.Any(c =>
+            c.Section == "Commander" &&
+            c.Name.Equals(entry.Name,
+                StringComparison.OrdinalIgnoreCase)))
+        {
+            errorMessage = "This card is already a commander.";
+            return;
+        }
+
+        string name = entry.Name;
+
+        entry.Quantity--;
+
+        if (entry.Quantity == 0)
+        {
+            workingCards.Remove(entry);
+        }
+
+        workingCards.Add(new DeckEntry
+        {
+            Name = name,
+            Quantity = 1,
+            Section = "Commander"
+        });
+    }
+
+    private void MoveToMainDeck(DeckEntry commander)
+    {
+        errorMessage = null;
+
+        workingCards.Remove(commander);
+
+        DeckEntry? existing = workingCards.FirstOrDefault(c =>
+            c.Section == "Main Deck" &&
+            c.Name.Equals(commander.Name,
+                StringComparison.OrdinalIgnoreCase));
+
+        if (existing != null)
+        {
+            existing.Quantity++;
+        }
+        else
+        {
+            workingCards.Add(new DeckEntry
+            {
+                Name = commander.Name,
+                Quantity = 1,
+                Section = "Main Deck"
+            });
+        }
+    }
+
+    private async Task SaveChanges()
+    {
+        if (isSaving || deck == null ||
+            string.IsNullOrWhiteSpace(userId))
+        {
+            return;
+        }
+
+        errorMessage = null;
+        isSaving = true;
+
+        try
+        {
+            List<DeckEntry> updatedCards = workingCards
+                .Select(c => new DeckEntry
+                {
+                    Name = c.Name,
+                    Quantity = c.Quantity,
+                    Section = c.Section
+                })
+                .ToList();
+
+            bool saved = await DeckService.SaveDeckChangesAsync(
+                deck.Id,
+                userId,
+                updatedCards);
+
+            if (!saved)
+            {
+                errorMessage =
+                    "Unable to save. The deck may no longer exist.";
+                return;
+            }
+
+            Navigation.NavigateTo($"/decks/{deck.Id}");
+        }
+        catch (ArgumentException ex)
+        {
+            errorMessage = ex.Message;
+        }
+        catch (Exception)
+        {
+            errorMessage = "An error occurred while saving the deck.";
+        }
+        finally
+        {
+            isSaving = false;
+        }
+    }
+
+    private static string GetCardUrl(string name)
+    {
+        return "/card/" + Uri.EscapeDataString(name);
+    }
+}

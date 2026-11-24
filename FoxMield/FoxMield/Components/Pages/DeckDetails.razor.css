@@ -334,10 +334,6 @@
     }
 }
 
-/* =====================================
-   Commander Full Card Images
-   ===================================== */
-
 .deck-commander-card {
     display: flex;
     align-items: flex-start;
@@ -401,10 +397,6 @@
         line-height: 1.5;
     }
 
-/* =====================================
-   Loading / Errors
-   ===================================== */
-
 .deck-loading,
 .deck-load-error {
     padding: 16px 20px;
@@ -424,10 +416,6 @@
     background: #302025;
     border: 1px solid #922534;
 }
-
-/* =====================================
-   Mana Curve Panel
-   ===================================== */
 
 .deck-mana-section {
     margin-bottom: 32px;
@@ -512,10 +500,6 @@
     font-size: 14px;
 }
 
-/* =====================================
-   Cards by Type
-   ===================================== */
-
 .deck-type-heading {
     margin: 35px 0 22px;
 }
@@ -573,3 +557,30 @@
         gap: 10px;
     }
 }
+
+.deck-export-action {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    margin-top: 18px;
+    padding: 12px 20px;
+    background: #922534;
+    border: 1px solid #922534;
+    color: #ffffff;
+    font-size: 14px;
+    font-weight: 600;
+    text-decoration: none;
+    border-radius: 8px;
+    transition: background-color 0.2s, border-color 0.2s;
+}
+
+    .deck-export-action:hover {
+        background: #c92838;
+        border-color: #c92838;
+        color: #ffffff;
+    }
+
+    .deck-export-action:focus-visible {
+        outline: 2px solid #e03547;
+        outline-offset: 4px;
+    }
