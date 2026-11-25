@@ -61,5 +61,47 @@ namespace FoxMield.Components.Services
 
             return deck;
         }
+
+        public async Task<Deck> CreateDeckAsync(string name, List<DeckEntry> cards, string userId)
+        {
+            if (string.IsNullOrWhiteSpace(name))
+            {
+                throw new FormatException(
+                    "Please enter a name for your deck.");
+            }
+
+            if (string.IsNullOrWhiteSpace(userId))
+            {
+                throw new UnauthorizedAccessException(
+                    "You must be logged in to create a deck.");
+            }
+
+            Deck deck = new Deck
+            {
+                Id = Guid.NewGuid(),
+                UserId = userId,
+                Name = name.Trim(),
+                ImportedAt = DateTimeOffset.UtcNow,
+                Cards = cards
+            };
+
+            await _database.Decks.InsertOneAsync(deck);
+
+            return deck;
+        }
+
+        public async Task<bool> UpdateDeckAsync(Deck deck, string userId)
+        {
+            if (string.IsNullOrWhiteSpace(userId))
+                throw new UnauthorizedAccessException();
+
+            var result = await _database.Decks.ReplaceOneAsync(
+                d => d.Id == deck.Id && d.UserId == userId,
+                deck
+            );
+
+            return result.MatchedCount > 0;
+        }
+
     }
 }

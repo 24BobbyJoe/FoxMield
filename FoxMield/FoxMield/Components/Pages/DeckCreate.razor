@@ -1,0 +1,348 @@
+﻿@page "/deck-create"
+@rendermode InteractiveServer
+
+@using FoxMield.Components.Models
+@using FoxMield.Components.Services
+@using Microsoft.AspNetCore.Components.Authorization
+@using System.Security.Claims
+
+@inject DeckService DeckService
+@inject ScryfallService ScryfallService
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject NavigationManager Navigation
+
+<PageTitle>Create Deck | FoxMield</PageTitle>
+
+<div class="deck-builder">
+
+    <h1>Create Commander Deck</h1>
+
+    @if (!string.IsNullOrWhiteSpace(errorMessage))
+    {
+        <div class="builder-error">
+            @errorMessage
+        </div>
+    }
+
+    <div class="builder-header">
+
+        <input @bind="deck.Name"
+               placeholder="Deck Name" />
+
+        <button @onclick="SaveDeck"
+                disabled="@isSaving">
+            @(isSaving ? "Saving..." : "Save Deck")
+        </button>
+
+    </div>
+
+    <div class="deck-progress">
+
+        <h3>@deck.TotalCards / 100 Cards</h3>
+
+        <progress value="@deck.TotalCards" max="100">
+        </progress>
+
+        <p>Commanders: @deck.CommanderCount</p>
+        <p>Main Deck: @deck.MainDeckCount</p>
+
+    </div>
+
+    <div class="builder-columns">
+
+        <section class="card-search-panel">
+
+            <h2>Card Search</h2>
+
+            <div class="search-controls">
+
+                <input @bind="searchName"
+                       @bind:event="oninput"
+                       placeholder="Enter card name..." />
+
+                <button @onclick="SearchCard"
+                        disabled="@isSearching">
+                    Search
+                </button>
+
+            </div>
+
+            @if (isSearching)
+            {
+                <p>Searching...</p>
+            }
+
+            @foreach (Card card in searchResults)
+            {
+                <div class="search-card">
+
+                    @if (card.ImageUris.TryGetValue(
+                        "normal", out var image))
+                    {
+                        <img src="@image.ToString()"
+                             alt="@card.Name" />
+                    }
+
+                    <div>
+
+                        <h3>@card.Name</h3>
+
+                        <p>@card.TypeLine</p>
+
+                        <p>@card.ManaCost</p>
+
+                        <p>
+                            Color Identity:
+                            @(string.IsNullOrEmpty(card.ColorIdentity)
+                                ? "Colorless"
+                                : card.ColorIdentity)
+                        </p>
+
+                        <button @onclick='() => AddCard(card, "Commander")'>
+                            Add as Commander
+                        </button>
+
+                        <button @onclick='() => AddCard(card, "Main Deck")'>
+                            Add to Main Deck
+                        </button>
+
+                    </div>
+
+                </div>
+            }
+
+        </section>
+
+        <section class="deck-contents-panel">
+
+            <h2>Deck Contents</h2>
+
+            @foreach (string sectionName in sections)
+            {
+                var entries = deck.Cards
+                    .Where(c => c.Section == sectionName)
+                    .OrderBy(c => c.Name)
+                    .ToList();
+
+                <div class="deck-section">
+
+                    <h3>
+                        @sectionName
+                        (@entries.Sum(c => c.Quantity))
+                    </h3>
+
+                    @foreach (DeckEntry entry in entries)
+                    {
+                        <div class="builder-card-row">
+
+                            <span>@entry.Quantity x</span>
+
+                            <span class="card-name">
+                                @entry.Name
+                            </span>
+
+                            <button @onclick="() => DecreaseQuantity(entry)">
+                                -
+                            </button>
+
+                            <button @onclick="() => IncreaseQuantity(entry)"
+                                    disabled="@(entry.Section == "Commander")">
+                                +
+                            </button>
+
+                            <button @onclick="() => RemoveCard(entry)">
+                                Remove
+                            </button>
+
+                        </div>
+                    }
+
+                </div>
+            }
+
+        </section>
+
+    </div>
+
+</div>
+
+@code {
+    private Deck deck = new();
+
+    private string userId = "";
+
+    private string searchName = "";
+
+    private string errorMessage = "";
+
+    private bool isSearching;
+
+    private bool isSaving;
+
+    private List<Card> searchResults = new();
+
+    private readonly string[] sections =
+    {
+        "Commander",
+        "Main Deck"
+    };
+
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = await AuthenticationStateProvider
+            .GetAuthenticationStateAsync();
+
+        userId = authState.User
+            .FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "";
+
+        if (string.IsNullOrWhiteSpace(userId))
+        {
+            Navigation.NavigateTo("/login");
+        }
+    }
+
+    private async Task SearchCard()
+    {
+        if (string.IsNullOrWhiteSpace(searchName))
+            return;
+
+        errorMessage = "";
+        isSearching = true;
+        searchResults.Clear();
+
+        try
+        {
+            searchResults = await ScryfallService
+                .GetCardsByNames(new List<string>
+                {
+                    searchName.Trim()
+                });
+
+            if (searchResults.Count == 0)
+            {
+                errorMessage = "No matching cards found.";
+            }
+        }
+        catch (Exception)
+        {
+            errorMessage = "Unable to retrieve card information.";
+        }
+        finally
+        {
+            isSearching = false;
+        }
+    }
+
+    private void AddCard(Card card, string sectionName)
+    {
+        errorMessage = "";
+
+        DeckEntry? existingEntry = deck.Cards
+            .FirstOrDefault(c =>
+                c.Name.Equals(
+                    card.Name,
+                    StringComparison.OrdinalIgnoreCase)
+                && c.Section == sectionName);
+
+        if (existingEntry != null)
+        {
+            if (sectionName != "Commander")
+            {
+                existingEntry.Quantity++;
+            }
+
+            return;
+        }
+
+        deck.Cards.Add(new DeckEntry
+        {
+            Name = card.Name,
+            Quantity = 1,
+            Section = sectionName
+        });
+    }
+
+    private void IncreaseQuantity(DeckEntry entry)
+    {
+        if (entry.Section != "Commander")
+        {
+            entry.Quantity++;
+        }
+    }
+
+    private void DecreaseQuantity(DeckEntry entry)
+    {
+        entry.Quantity--;
+
+        if (entry.Quantity <= 0)
+        {
+            deck.Cards.Remove(entry);
+        }
+    }
+
+    private void RemoveCard(DeckEntry entry)
+    {
+        deck.Cards.Remove(entry);
+    }
+
+    private Guid? savedDeckId;
+
+    private async Task SaveDeck()
+    {
+        errorMessage = "";
+
+        if (isSaving)
+            return;
+
+        if (string.IsNullOrWhiteSpace(deck.Name))
+        {
+            errorMessage = "Please enter a deck name.";
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(userId))
+        {
+            Navigation.NavigateTo("/login");
+            return;
+        }
+
+        isSaving = true;
+
+        try
+        {
+            if (savedDeckId == null)
+            {
+                Deck savedDeck = await DeckService.CreateDeckAsync(deck.Name, deck.Cards, userId);
+
+                savedDeckId = savedDeck.Id;
+
+                deck.Id = savedDeck.Id;
+                deck.ImportedAt = savedDeck.ImportedAt;
+            }
+
+            deck.UserId = userId;
+            deck.Name = deck.Name.Trim();
+
+            bool updated = await DeckService.UpdateDeckAsync(
+                deck,
+                userId
+            );
+
+            if (!updated)
+            {
+                errorMessage = "Unable to update deck.";
+                return;
+            }
+
+            Navigation.NavigateTo($"/decks/{deck.Id}");
+        }
+        catch (Exception)
+        {
+            errorMessage = "Unable to save deck.";
+        }
+        finally
+        {
+            isSaving = false;
+        }
+    }
+}
