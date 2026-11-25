@@ -223,3 +223,109 @@
         width: 100%;
     }
 }
+
+.deck-file-input {
+    display: block;
+    width: 100%;
+    padding: 16px;
+    background: #19191d;
+    border: 1px dashed #55555e;
+    border-radius: 8px;
+    color: #f5f5f5;
+    cursor: pointer;
+}
+
+    .deck-file-input::file-selector-button {
+        padding: 10px 16px;
+        margin-right: 16px;
+        border: 1px solid #922534;
+        background: #922534;
+        border-radius: 6px;
+        color: #ffffff;
+        cursor: pointer;
+    }
+
+        .deck-file-input::file-selector-button:hover {
+            background: #c92838;
+        }
+
+.deck-upload-success {
+    margin-top: 12px;
+    color: #78d7a1;
+    font-size: 14px;
+}
+
+.deck-import-divider {
+    display: flex;
+    align-items: center;
+    gap: 18px;
+    margin: 28px 0;
+    color: #9999a3;
+    font-size: 13px;
+    font-weight: 600;
+}
+
+    .deck-import-divider::before,
+    .deck-import-divider::after {
+        content: "";
+        flex: 1;
+        height: 1px;
+        background: #3a3a40;
+    }
+
+.deck-preview-heading {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin-bottom: 16px;
+}
+
+    .deck-preview-heading h2 {
+        margin: 0;
+    }
+
+.deck-format-badge {
+    padding: 7px 12px;
+    background: #40252b;
+    color: #ff8a96;
+    border: 1px solid #922534;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.deck-preview-sections {
+    margin-top: 24px;
+    border: 1px solid #35353a;
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.deck-preview-section-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 16px;
+    border-bottom: 1px solid #35353a;
+    color: #e0e0e0;
+}
+
+    .deck-preview-section-row:last-child {
+        border-bottom: none;
+    }
+
+    .deck-preview-section-row strong {
+        color: #ffffff;
+    }
+
+@media (max-width: 640px) {
+    .deck-file-input {
+        padding: 12px;
+    }
+
+    .deck-preview-heading {
+        align-items: flex-start;
+    }
+}

@@ -1,5 +1,4 @@
-﻿
-@page "/decks"
+﻿@page "/decks"
 @using FoxMield.Components.Models
 @using FoxMield.Components.Services
 @using Microsoft.AspNetCore.Components.Authorization
@@ -21,10 +20,18 @@
                 Commander decks.
             </p>
         </div>
+      
+        <div class="decks-header-actions">
 
-        <a href="/deck-import" class="decks-import-button">
-            + Import Deck
-        </a>
+            <a href="/deck-export" class="decks-export-button">
+                Export Deck
+            </a>
+
+            <a href="/deck-import" class="decks-import-button">
+                + Import Deck
+            </a>
+
+        </div>
     </div>
 
     @if (decks.Count == 0)
@@ -54,9 +61,13 @@
         <div class="decks-list">
             @foreach (Deck deck in decks)
             {
-                <a href="@($"/decks/{deck.Id}")"
-                   class="deck-list-card"
-                   @key="deck.Id">
+                
+                <div class="deck-list-card" @key="deck.Id">
+
+                    <a href="@($"/decks/{deck.Id}")"
+                       class="deck-card-view-link"
+                       aria-label="@("View " + deck.Name)">
+                    </a>
 
                     <div class="deck-list-main">
                         <h3>@deck.Name</h3>
@@ -127,7 +138,17 @@
                         →
                     </span>
 
-                </a>
+                    <a href="@($"/decks/{deck.Id}/edit")"
+                       class="deck-editor-button">
+                        Open in Editor
+                    </a>
+                    
+                    <a href="@($"/deck-export?deck={deck.Id}")"
+                       class="deck-export-button">
+                        Export
+                    </a>
+
+                </div>
             }
         </div>
     }

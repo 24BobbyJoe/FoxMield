@@ -1,5 +1,4 @@
-﻿
-using FoxMield.App_Data;
+﻿using FoxMield.App_Data;
 using FoxMield.Components.Models;
 using MongoDB.Driver;
 
@@ -62,46 +61,94 @@ namespace FoxMield.Components.Services
             return deck;
         }
 
-        public async Task<Deck> CreateDeckAsync(string name, List<DeckEntry> cards, string userId)
+        public async Task<bool> SaveDeckChangesAsync(
+            Guid deckId,
+            string userId,
+            List<DeckEntry> updatedCards)
         {
-            if (string.IsNullOrWhiteSpace(name))
-            {
-                throw new FormatException(
-                    "Please enter a name for your deck.");
-            }
-
             if (string.IsNullOrWhiteSpace(userId))
             {
                 throw new UnauthorizedAccessException(
-                    "You must be logged in to create a deck.");
+                    "You must be logged in to edit a deck.");
             }
 
-            Deck deck = new Deck
+            if (updatedCards == null)
             {
-                Id = Guid.NewGuid(),
-                UserId = userId,
-                Name = name.Trim(),
-                ImportedAt = DateTimeOffset.UtcNow,
-                Cards = cards
+                throw new ArgumentException(
+                    "Deck card data cannot be null.");
+            }
+
+            string[] allowedSections =
+            {
+                "Commander",
+                "Main Deck",
+                "Sideboard",
+                "Maybeboard",
+                "Companion"
             };
 
-            await _database.Decks.InsertOneAsync(deck);
+            foreach (DeckEntry card in updatedCards)
+            {
+                if (string.IsNullOrWhiteSpace(card.Name))
+                {
+                    throw new ArgumentException(
+                        "Every card must have a name.");
+                }
 
-            return deck;
-        }
+                if (card.Quantity < 1)
+                {
+                    throw new ArgumentException(
+                        "Card quantities must be at least 1.");
+                }
 
-        public async Task<bool> UpdateDeckAsync(Deck deck, string userId)
-        {
-            if (string.IsNullOrWhiteSpace(userId))
-                throw new UnauthorizedAccessException();
+                if (!allowedSections.Contains(card.Section))
+                {
+                    throw new ArgumentException(
+                        $"Invalid deck section: {card.Section}");
+                }
 
-            var result = await _database.Decks.ReplaceOneAsync(
-                d => d.Id == deck.Id && d.UserId == userId,
-                deck
+                if (card.Section == "Commander" &&
+                    card.Quantity != 1)
+                {
+                    throw new ArgumentException(
+                        "Each commander must have exactly one copy.");
+                }
+            }
+
+            int commanderCount = updatedCards
+                .Where(c => c.Section == "Commander")
+                .Sum(c => c.Quantity);
+
+            if (commanderCount > 2)
+            {
+                throw new ArgumentException(
+                    "A deck cannot have more than two commanders.");
+            }
+
+            List<DeckEntry> cleanedCards = updatedCards
+                .GroupBy(
+                    c => (Name: c.Name.Trim().ToUpperInvariant(),
+                          c.Section))
+                .Select(group => new DeckEntry
+                {
+                    Name = group.First().Name.Trim(),
+                    Quantity = group.Sum(c => c.Quantity),
+                    Section = group.Key.Section
+                })
+                .ToList();
+
+            var filter = Builders<Deck>.Filter.And(
+                Builders<Deck>.Filter.Eq(d => d.Id, deckId),
+                Builders<Deck>.Filter.Eq(d => d.UserId, userId)
             );
 
-            return result.MatchedCount > 0;
-        }
+            var update = Builders<Deck>.Update
+                .Set(d => d.Cards, cleanedCards);
 
+            var result = await _database.Decks
+                .UpdateOneAsync(filter, update);
+
+            return result.MatchedCount == 1;
+        }
     }
 }

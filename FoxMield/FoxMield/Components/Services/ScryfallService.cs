@@ -1,4 +1,4 @@
-﻿
+﻿using System.Collections.Concurrent;
 using System.Text.Json;
 using System.Net.Http.Json;
 using FoxMield.Components.Models;
@@ -8,6 +8,41 @@ namespace FoxMield.Components.Services
     public class ScryfallService
     {
         private readonly HttpClient _http;
+
+        private static readonly SemaphoreSlim RequestGate = new(1, 1);
+
+        private static DateTimeOffset nextRequestAt =
+            DateTimeOffset.MinValue;
+
+        private static readonly ConcurrentDictionary<
+            string,
+            (DateTimeOffset Expires, List<string> Names)> SearchCache =
+            new(StringComparer.OrdinalIgnoreCase);
+
+        private static async Task<HttpResponseMessage> SendLimitedAsync(
+            Func<Task<HttpResponseMessage>> request)
+        {
+            await RequestGate.WaitAsync();
+
+            try
+            {
+                TimeSpan remaining =
+                    nextRequestAt - DateTimeOffset.UtcNow;
+
+                if (remaining > TimeSpan.Zero)
+                {
+                    await Task.Delay(remaining);
+                }
+
+                nextRequestAt = DateTimeOffset.UtcNow.AddMilliseconds(600);
+
+                return await request();
+            }
+            finally
+            {
+                RequestGate.Release();
+            }
+        }
 
         public ScryfallService(HttpClient http)
         {
@@ -32,9 +67,11 @@ namespace FoxMield.Components.Services
             {
                 var batch = identifiers.Skip(i).Take(75).ToList();
 
-                var response = await _http.PostAsJsonAsync(
-                    "cards/collection",
-                    new { identifiers = batch }
+                using var response = await SendLimitedAsync(
+                    () => _http.PostAsJsonAsync(
+                        "cards/collection",
+                        new { identifiers = batch }
+                    )
                 );
 
                 response.EnsureSuccessStatusCode();
@@ -161,6 +198,49 @@ namespace FoxMield.Components.Services
                 .Where(element => element.ValueKind == JsonValueKind.String)
                 .Select(element => element.GetString() ?? "")
                 .ToArray();
+        }
+
+        public async Task<List<string>> SearchCardNamesAsync(string query)
+        {
+            query = query.Trim();
+
+            if (query.Length < 3)
+            {
+                return new List<string>();
+            }
+
+            if (SearchCache.TryGetValue(query, out var cached) &&
+                cached.Expires > DateTimeOffset.UtcNow)
+            {
+                return cached.Names.ToList();
+            }
+
+            string url = "cards/autocomplete?q=" +
+                Uri.EscapeDataString(query);
+
+            using var response = await SendLimitedAsync(
+                () => _http.GetAsync(url)
+            );
+
+            response.EnsureSuccessStatusCode();
+
+            using var document = JsonDocument.Parse(
+                await response.Content.ReadAsStringAsync()
+            );
+
+            List<string> names = document.RootElement
+                .GetProperty("data")
+                .EnumerateArray()
+                .Where(item => item.ValueKind == JsonValueKind.String)
+                .Select(item => item.GetString()!)
+                .ToList();
+
+            SearchCache[query] = (
+                DateTimeOffset.UtcNow.AddHours(24),
+                names
+            );
+
+            return names.ToList();
         }
     }
 }
