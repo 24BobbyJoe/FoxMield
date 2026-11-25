@@ -370,16 +370,14 @@
         @foreach (var section in deck.Cards
             .Where(c => c.Section != "Commander" &&
                         c.Section != "Main Deck")
-        @foreach (var section in deck.Cards
-            .Where(c => c.Section != "Commander")
-            .GroupBy(c => c.Section)
-            .OrderBy(s => GetSectionOrder(s.Key)))
+                        .GroupBy(c => c.Section)
+                        .OrderBy(s => GetSectionOrder(s.Key)))
         {
             <section class="deck-cards-section">
 
                 <div class="deck-section-header">
 
-                    <h2>@section.Key</h2>
+                    <h2>@(section.Key)</h2>
 
                     <span>
                         @section.Sum(c => c.Quantity) Cards
@@ -528,7 +526,7 @@
             "normal",
             "png",
             "border_crop"
-        };
+    };
 
         foreach (string size in preferredSizes)
         {
@@ -608,6 +606,7 @@
         }
 
         return curve;
+    }
 
     private static string GetCardUrl(string cardName)
     {
